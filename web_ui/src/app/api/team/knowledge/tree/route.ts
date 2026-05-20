@@ -12,7 +12,7 @@ export const maxDuration = 300; // 5 minutes
  * Note: This endpoint may trigger lazy loading of trees from S3 on first access.
  */
 export async function GET(request: NextRequest) {
-  const token = request.cookies.get('opensre_session_token')?.value;
+  const token = request.cookies.get('solidai-sre_session_token')?.value;
 
   if (!token) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });

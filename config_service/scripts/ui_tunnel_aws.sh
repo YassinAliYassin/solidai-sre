@@ -44,7 +44,7 @@ import json, os, subprocess, sys
 
 profile = os.environ["AWS_PROFILE"]
 region = os.environ["AWS_REGION"]
-project = "opensre-config-service"
+project = "solidai-sre-config-service"
 
 lbs = json.loads(subprocess.check_output(
     ["aws","--profile",profile,"--region",region,"elbv2","describe-load-balancers","--output","json"],
@@ -100,7 +100,7 @@ if [ -z "$JUMPBOX_ID" ]; then
   # Prefer Terraform project tag (most robust).
   JUMPBOX_ID="$(
     aws --profile "$AWS_PROFILE" --region "$AWS_REGION" ec2 describe-instances \
-      --filters "Name=tag:Project,Values=opensre-config-service" "Name=instance-state-name,Values=running" \
+      --filters "Name=tag:Project,Values=solidai-sre-config-service" "Name=instance-state-name,Values=running" \
       --query "Reservations[0].Instances[0].InstanceId" --output text 2>/dev/null || true
   )"
 fi
@@ -108,10 +108,10 @@ fi
 JUMPBOX_ID="$(sanitize_instance_id "${JUMPBOX_ID}")"
 
 if [ -z "$JUMPBOX_ID" ]; then
-  # Find jumpbox by tag name (created by the RDS stack): Name=opensre-config-service-jumpbox
+  # Find jumpbox by tag name (created by the RDS stack): Name=solidai-sre-config-service-jumpbox
   JUMPBOX_ID="$(
     aws --profile "$AWS_PROFILE" --region "$AWS_REGION" ec2 describe-instances \
-      --filters "Name=tag:Name,Values=opensre-config-service-jumpbox" "Name=instance-state-name,Values=running" \
+      --filters "Name=tag:Name,Values=solidai-sre-config-service-jumpbox" "Name=instance-state-name,Values=running" \
       --query "Reservations[0].Instances[0].InstanceId" --output text 2>/dev/null || true
   )"
 fi
@@ -120,7 +120,7 @@ JUMPBOX_ID="$(sanitize_instance_id "${JUMPBOX_ID}")"
 
 if [ -z "$JUMPBOX_ID" ] || [ "$JUMPBOX_ID" = "None" ]; then
   echo "Could not find a running jumpbox instance."
-  echo "Expected tag: Name=opensre-config-service-jumpbox"
+  echo "Expected tag: Name=solidai-sre-config-service-jumpbox"
   echo "Or set JUMPBOX_INSTANCE_ID explicitly."
   echo "If you used the standalone jumpbox stack, update this script or tag your instance."
   exit 1

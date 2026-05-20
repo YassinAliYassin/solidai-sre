@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const CONFIG_SERVICE_URL = process.env.CONFIG_SERVICE_URL || 'http://localhost:8080';
 
 export async function GET(request: NextRequest) {
-  const token = request.cookies.get('opensre_session_token')?.value;
+  const token = request.cookies.get('solidai-sre_session_token')?.value;
   
   if (!token) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });

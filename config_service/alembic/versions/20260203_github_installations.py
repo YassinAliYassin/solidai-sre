@@ -57,20 +57,20 @@ def upgrade():
             comment="Account type: Organization or User",
         ),
         sa.Column("account_avatar_url", Text, nullable=True),
-        # OpenSRE org/team linkage
+        # SolidAI SRE org/team linkage
         sa.Column(
             "org_id",
             sa.String(255),
             nullable=True,
             index=True,
-            comment="OpenSRE org ID (set during setup)",
+            comment="SolidAI SRE org ID (set during setup)",
         ),
         sa.Column(
             "team_node_id",
             sa.String(255),
             nullable=True,
             index=True,
-            comment="OpenSRE team node ID (set during setup)",
+            comment="SolidAI SRE team node ID (set during setup)",
         ),
         # Permissions and repository access
         sa.Column(
@@ -131,7 +131,7 @@ def upgrade():
         ),
     )
 
-    # Index for looking up installations by OpenSRE org/team
+    # Index for looking up installations by SolidAI SRE org/team
     op.create_index(
         "ix_github_installations_org_team",
         "github_installations",

@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
 
     // Set session cookie with the session token
     const res = NextResponse.redirect(new URL(safeReturnTo(stateData.returnTo), request.url));
-    res.cookies.set('opensre_session_token', exchangeData.session_token, {
+    res.cookies.set('solidai-sre_session_token', exchangeData.session_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

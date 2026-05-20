@@ -8,7 +8,7 @@ AWS_PROFILE ?= playground
 AWS_REGION  ?= us-west-2
 
 help:
-	@echo "OpenSRE Config Service — common commands"
+	@echo "SolidAI SRE Config Service — common commands"
 	@echo ""
 	@echo "Local:"
 	@echo "  make venv        - create venv + install deps"

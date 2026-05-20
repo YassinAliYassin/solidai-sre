@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OpenSRE Evaluation Validation Suite
+SolidAI SRE Evaluation Validation Suite
 
 This script orchestrates the full evaluation pipeline to validate that:
 1. All plumbing works (eval packs load, pipeline runs, outputs are generated)
@@ -354,7 +354,7 @@ def save_report(report: ValidationReport, output_path: Path) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="OpenSRE Evaluation Validation Suite")
+    parser = argparse.ArgumentParser(description="SolidAI SRE Evaluation Validation Suite")
     parser.add_argument(
         "--dry-run", action="store_true", help="Skip LLM calls, validate plumbing only"
     )
@@ -380,7 +380,7 @@ def main():
 
     args = parser.parse_args()
 
-    print("\n🦊 OpenSRE Evaluation Validation Suite")
+    print("\n🦊 SolidAI SRE Evaluation Validation Suite")
     print("=" * 50)
 
     # Check for API keys if using LLM

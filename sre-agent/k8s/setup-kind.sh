@@ -3,7 +3,7 @@
 
 set -e
 
-echo "🚀 Setting up kind cluster for OpenSRE agent-sandbox..."
+echo "🚀 Setting up kind cluster for SolidAI SRE agent-sandbox..."
 
 # Check if kind is installed
 if ! command -v kind &> /dev/null; then
@@ -18,9 +18,9 @@ if ! command -v kubectl &> /dev/null; then
 fi
 
 # Create kind cluster if it doesn't exist
-if ! kind get clusters | grep -q "opensre"; then
-    echo "🔧 Creating kind cluster 'opensre'..."
-    kind create cluster --name opensre --config - <<EOF
+if ! kind get clusters | grep -q "solidai-sre"; then
+    echo "🔧 Creating kind cluster 'solidai-sre'..."
+    kind create cluster --name solidai-sre --config - <<EOF
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
@@ -30,11 +30,11 @@ nodes:
     containerPath: /var/run/docker.sock
 EOF
 else
-    echo "✅ Kind cluster 'opensre' already exists"
+    echo "✅ Kind cluster 'solidai-sre' already exists"
 fi
 
 # Set kubectl context
-kubectl config use-context kind-opensre
+kubectl config use-context kind-solidai-sre
 
 # Install agent-sandbox CRDs and controller
 echo "📦 Installing agent-sandbox..."

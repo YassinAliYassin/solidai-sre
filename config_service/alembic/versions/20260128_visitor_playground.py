@@ -1,7 +1,7 @@
 """Add visitor playground tables for public demo access.
 
 Creates visitor_emails and visitor_sessions tables to support the
-visitor playground feature where users can try OpenSRE without
+visitor playground feature where users can try SolidAI SRE without
 a paid account.
 
 Revision ID: 20260128_visitor_playground

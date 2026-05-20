@@ -19,14 +19,14 @@ def test_get_database_url_assembles_from_components(monkeypatch):
 
     monkeypatch.setenv("DB_HOST", "rds.internal")
     monkeypatch.setenv("DB_PORT", "5432")
-    monkeypatch.setenv("DB_NAME", "opensre_config")
-    monkeypatch.setenv("DB_USERNAME", "opensre")
+    monkeypatch.setenv("DB_NAME", "solidai-sre_config")
+    monkeypatch.setenv("DB_USERNAME", "solidai-sre")
     monkeypatch.setenv("DB_PASSWORD", "p@ss word/with:chars")
     monkeypatch.setenv("DB_SSLMODE", "require")
 
     url = get_database_url()
-    assert url.startswith("postgresql+psycopg2://opensre:")
-    assert "@rds.internal:5432/opensre_config?sslmode=require" in url
+    assert url.startswith("postgresql+psycopg2://solidai-sre:")
+    assert "@rds.internal:5432/solidai-sre_config?sslmode=require" in url
     # ensure url-encoding happened (space => + or %20)
     assert ("p%40ss+word%2Fwith%3Achars" in url) or (
         "p%40ss%20word%2Fwith%3Achars" in url

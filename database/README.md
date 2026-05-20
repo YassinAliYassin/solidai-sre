@@ -1,10 +1,10 @@
-# `database/` — OpenSRE Database + Infra Tooling *(implemented)*
+# `database/` — SolidAI SRE Database + Infra Tooling *(implemented)*
 
-This directory contains the infrastructure and operational scripts for OpenSRE’s database layer (currently **AWS RDS PostgreSQL**) and internal-only access patterns.
+This directory contains the infrastructure and operational scripts for SolidAI SRE’s database layer (currently **AWS RDS PostgreSQL**) and internal-only access patterns.
 
 ## Important: shared OLTP direction
 
-Today, the DB is most heavily exercised by `config_service/`, but the intent is for this Postgres cluster to become the **shared OLTP** for OpenSRE:
+Today, the DB is most heavily exercised by `config_service/`, but the intent is for this Postgres cluster to become the **shared OLTP** for SolidAI SRE:
 - config + audit logs (already)
 - orchestrator provisioning state (now starting)
 - agent runs / traces / tool calls

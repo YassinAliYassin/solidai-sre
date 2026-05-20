@@ -45,7 +45,7 @@ def load_oidc_config() -> Optional[OIDCConfig]:
         alg=os.getenv("OIDC_ALG", "RS256"),
         leeway_seconds=int(os.getenv("OIDC_LEEWAY_SECONDS", "30")),
         groups_claim=os.getenv("OIDC_GROUPS_CLAIM", "groups"),
-        admin_group=os.getenv("OIDC_ADMIN_GROUP", "opensre-config-admin"),
+        admin_group=os.getenv("OIDC_ADMIN_GROUP", "solidai-sre-config-admin"),
         org_id_claim=os.getenv("OIDC_ORG_ID_CLAIM", "org_id"),
         team_node_id_claim=os.getenv("OIDC_TEAM_NODE_ID_CLAIM", "team_node_id"),
         email_claim=os.getenv("OIDC_EMAIL_CLAIM", "email"),

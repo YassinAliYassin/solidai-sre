@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
     // If the visitor got active access, set the session cookie
     if (data.status === "active" && data.token) {
-      response.cookies.set("opensre_session_token", data.token, {
+      response.cookies.set("solidai-sre_session_token", data.token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
 
     // Also set cookie for queued users (they'll need it when promoted)
     if (data.status === "queued" && data.token) {
-      response.cookies.set("opensre_visitor_token", data.token, {
+      response.cookies.set("solidai-sre_visitor_token", data.token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",

@@ -31,7 +31,7 @@ async function getEntranceAgent(token: string): Promise<string> {
 }
 
 export async function POST(request: NextRequest) {
-  const token = request.cookies.get('opensre_session_token')?.value;
+  const token = request.cookies.get('solidai-sre_session_token')?.value;
 
   if (!token) {
     return new Response(JSON.stringify({ error: 'Not authenticated' }), {
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-OpenSRE-Team-Token': token,
+        'X-SolidAI SRE-Team-Token': token,
         'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({

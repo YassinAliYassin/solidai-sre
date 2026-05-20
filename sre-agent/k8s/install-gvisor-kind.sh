@@ -4,7 +4,7 @@ set -e
 
 echo "🔒 Installing gVisor runtime in Kind cluster..."
 
-CLUSTER_NAME="opensre"
+CLUSTER_NAME="solidai-sre"
 NODE_NAME="${CLUSTER_NAME}-control-plane"
 
 # Check if kind cluster exists

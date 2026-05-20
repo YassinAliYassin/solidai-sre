@@ -4,8 +4,8 @@ import Image from 'next/image';
 export const Logo = ({ className = "w-8 h-8" }: { className?: string }) => (
   <div className={`relative ${className}`}>
     <Image
-        src="/opensre-logo.png"
-        alt="OpenSRE Logo"
+        src="/solidai-sre-logo.png"
+        alt="SolidAI SRE Logo"
         fill
         className="object-contain"
     />
@@ -15,8 +15,8 @@ export const Logo = ({ className = "w-8 h-8" }: { className?: string }) => (
 export const LogoFull = () => (
     <div className="relative h-full w-full flex-shrink-0">
         <Image
-            src="/opensre-logo.png"
-            alt="OpenSRE"
+            src="/solidai-sre-logo.png"
+            alt="SolidAI SRE"
             fill
             className="object-contain object-left"
         />

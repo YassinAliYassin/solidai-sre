@@ -1,5 +1,5 @@
 {
-  "$schema": "opensre-template-v1",
+  "$schema": "solidai-sre-template-v1",
   "$template_name": "Database Migration Engineer",
   "$template_slug": "database-migration",
   "$description": "Enterprise-grade database migration and schema change assistant with full tooling for schema DDL changes, data migrations, zero-downtime patterns, downstream impact analysis, and troubleshooting. Supports PostgreSQL, MySQL, Snowflake, BigQuery direct operations, plus Flyway, Alembic, Prisma migrations, gh-ost/pt-osc online schema changes, and Debezium CDC pipelines.",

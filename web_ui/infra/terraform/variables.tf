@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "name_prefix" {
   type        = string
   description = "Name prefix for resources"
-  default     = "opensre-web-ui"
+  default     = "solidai-sre-web-ui"
 }
 
 variable "vpc_id" {
@@ -31,7 +31,7 @@ variable "private_subnet_ids" {
 variable "ecs_cluster_name" {
   type        = string
   description = "ECS cluster name to deploy the service into"
-  default     = "opensre-config-service-cluster"
+  default     = "solidai-sre-config-service-cluster"
 }
 
 variable "image_uri" {
@@ -79,7 +79,7 @@ variable "config_service_url" {
   type        = string
   description = "Base URL of the backend config service (reachable from ECS tasks inside the VPC)"
   # Note: this is an internal ALB DNS name; ALBs typically listen on 80/443 (not the target port 8080).
-  default = "http://internal-opensre-config-service.internal"
+  default = "http://internal-solidai-sre-config-service.internal"
 }
 
 variable "enable_ssm_tunnel" {

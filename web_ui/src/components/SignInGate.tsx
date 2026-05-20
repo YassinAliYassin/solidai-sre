@@ -325,7 +325,7 @@ export function SignInGate({ children }: { children: React.ReactNode }) {
               <KeyRound className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-base font-semibold text-stone-900 dark:text-white">Sign in to OpenSRE</div>
+              <div className="text-base font-semibold text-stone-900 dark:text-white">Sign in to SolidAI SRE</div>
               <div className="text-xs text-stone-500">
                 {loginMode === 'team'
                   ? hasSSO
@@ -428,7 +428,7 @@ export function SignInGate({ children }: { children: React.ReactNode }) {
               {/* Visitor Login */}
               <div className="bg-forest-light/10 dark:bg-forest/20 border border-forest-light/30 dark:border-forest/30 rounded-lg p-4 text-sm">
                 <p className="text-forest-dark dark:text-forest-light font-medium mb-1">
-                  Try OpenSRE for free
+                  Try SolidAI SRE for free
                 </p>
                 <p className="text-forest dark:text-forest-light text-xs">
                   Enter your email to access our public playground. You&apos;ll get to explore the AI-powered incident investigation platform.
@@ -452,7 +452,7 @@ export function SignInGate({ children }: { children: React.ReactNode }) {
               </div>
 
               <div className="text-xs text-stone-500">
-                By continuing, you agree to receive occasional updates about OpenSRE.
+                By continuing, you agree to receive occasional updates about SolidAI SRE.
               </div>
             </>
           )}

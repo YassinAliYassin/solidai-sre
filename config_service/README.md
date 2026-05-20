@@ -1,6 +1,6 @@
-# OpenSRE Config Service
+# SolidAI SRE Config Service
 
-Hierarchical configuration management for OpenSRE agents and teams.
+Hierarchical configuration management for SolidAI SRE agents and teams.
 
 ## What this service does
 
@@ -217,7 +217,7 @@ Enable OIDC for admin and/or team auth:
 - `OIDC_ISSUER`, `OIDC_AUDIENCE`
 - `OIDC_JWKS_URL` (recommended) or `OIDC_JWKS_JSON` (dev)
 - `OIDC_GROUPS_CLAIM` (default: `groups`)
-- `OIDC_ADMIN_GROUP` (default: `opensre-config-admin`)
+- `OIDC_ADMIN_GROUP` (default: `solidai-sre-config-admin`)
 
 Admin auth modes:
 - `ADMIN_AUTH_MODE=token|oidc|both`
@@ -237,7 +237,7 @@ Example:
 
 ```bash
 export ADMIN_PERMISSIONS_DEFAULT="admin:read"
-export ADMIN_GROUP_PERMISSIONS_JSON='{"opensre-admins":["admin:*"],"opensre-ops":["admin:agent:run"]}'
+export ADMIN_GROUP_PERMISSIONS_JSON='{"solidai-sre-admins":["admin:*"],"solidai-sre-ops":["admin:agent:run"]}'
 ```
 
 ## Observability

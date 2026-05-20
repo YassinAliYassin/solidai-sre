@@ -13,7 +13,7 @@ variable "aws_profile" {
 variable "project" {
   type        = string
   description = "Tag prefix / project name"
-  default     = "opensre-config-service"
+  default     = "solidai-sre-config-service"
 }
 
 variable "vpc_id" {

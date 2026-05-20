@@ -124,7 +124,7 @@ def main() -> None:
                     node_id=PLAYGROUND_ORG_ID,
                     node_type="org",
                     config_json={
-                        "description": "Public visitor playground for demoing OpenSRE",
+                        "description": "Public visitor playground for demoing SolidAI SRE",
                         # Minimal MCP servers for demo
                         "mcp_servers": [],
                     },
@@ -152,7 +152,7 @@ def main() -> None:
                     node_type="team",
                     config_json={
                         "team_name": PLAYGROUND_TEAM_NAME,
-                        "description": "Public playground team for visitors to try OpenSRE",
+                        "description": "Public playground team for visitors to try SolidAI SRE",
                         # Fixed routing - only this Slack channel routes to playground
                         "routing": {
                             "slack_channel_ids": [slack_channel_id],

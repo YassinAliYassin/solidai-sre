@@ -5,8 +5,8 @@ set -e
 
 AWS_REGION="${AWS_REGION:-us-west-2}"
 AWS_PROFILE="${AWS_PROFILE:-playground}"
-ECR_REPOSITORY="opensre-web-ui"
-NAMESPACE="opensre"
+ECR_REPOSITORY="solidai-sre-web-ui"
+NAMESPACE="solidai-sre"
 
 echo "🚀 Deploying Web UI"
 echo "  Region: $AWS_REGION"

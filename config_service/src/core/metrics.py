@@ -41,7 +41,7 @@ ADMIN_ACTIONS_TOTAL = Counter(
 )
 
 FEEDBACK_TOTAL = Counter(
-    "opensre_agent_feedback_total",
+    "solidai-sre_agent_feedback_total",
     "Total agent feedback received",
     [
         "feedback_type",

@@ -1,6 +1,6 @@
-# Contributing to OpenSRE
+# Contributing to SolidAI SRE
 
-Thank you for your interest in contributing to OpenSRE! We're building an AI-powered SRE that helps teams investigate incidents and automate infrastructure operations.
+Thank you for your interest in contributing to SolidAI SRE! We're building an AI-powered SRE that helps teams investigate incidents and automate infrastructure operations.
 
 ## Table of Contents
 
@@ -18,7 +18,7 @@ By participating in this project, you agree to maintain a respectful, inclusive,
 
 ## Licensing
 
-OpenSRE is licensed under the [Apache License 2.0](LICENSE). By submitting a pull request, you agree that your contributions will be licensed under the same terms.
+SolidAI SRE is licensed under the [Apache License 2.0](LICENSE). By submitting a pull request, you agree that your contributions will be licensed under the same terms.
 
 ## How Can I Contribute?
 
@@ -35,10 +35,10 @@ Found a bug? Help us fix it:
 
 Have an idea? We'd love to hear it:
 
-1. **Check existing feature requests** in [Discussions](https://github.com/swapnildahiphale/OpenSRE/discussions)
+1. **Check existing feature requests** in [Discussions](https://github.com/swapnildahiphale/SolidAI SRE/discussions)
 2. **Open a discussion** in the Ideas category before creating an issue
 3. **Explain the use case** and why it matters for incident response
-4. **Consider the scope** — does this fit OpenSRE's mission?
+4. **Consider the scope** — does this fit SolidAI SRE's mission?
 
 ### Contributing Code
 
@@ -61,8 +61,8 @@ Look for issues labeled:
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/swapnildahiphale/OpenSRE.git
-cd opensre
+git clone https://github.com/swapnildahiphale/SolidAI SRE.git
+cd solidai-sre
 ```
 
 2. **Set up environment**
@@ -93,7 +93,7 @@ pytest                          # Backend tests
 cd web_ui && pnpm test         # Frontend tests
 ```
 
-See the [Architecture docs](https://www.opensre.in/docs/architecture) for detailed architecture and development guide.
+See the [Architecture docs](https://www.solidai-sre.in/docs/architecture) for detailed architecture and development guide.
 
 ## Development Workflow
 
@@ -227,14 +227,14 @@ Closes #123
 ### Get Help
 
 - **GitHub Discussions** — ask questions, share ideas
-- **Slack** — join our community at [opensre.slack.com](https://join.slack.com/t/opensre/shared_invite/zt-3ojlxvs46-xuEJEplqBHPlymxtzQi8KQ)
+- **Slack** — join our community at [solidai-sre.slack.com](https://join.slack.com/t/solidai-sre/shared_invite/zt-3ojlxvs46-xuEJEplqBHPlymxtzQi8KQ)
 - **Issues** — report bugs or request features
 
 ### Stay Updated
 
 - Watch this repo for updates
-- Follow [@opensre](https://twitter.com/opensre) on Twitter
-- Read our [blog](https://opensre.in/blog) for deep dives
+- Follow [@solidai-sre](https://twitter.com/solidai-sre) on Twitter
+- Read our [blog](https://solidai-sre.in/blog) for deep dives
 
 ### Recognition
 
@@ -245,8 +245,8 @@ Contributors are recognized in:
 ## Questions?
 
 If you're unsure about anything:
-1. Check the [docs](https://www.opensre.in/docs) for technical details
-2. Ask in [GitHub Discussions](https://github.com/swapnildahiphale/OpenSRE/discussions)
+1. Check the [docs](https://www.solidai-sre.in/docs) for technical details
+2. Ask in [GitHub Discussions](https://github.com/swapnildahiphale/SolidAI SRE/discussions)
 3. Reach out to maintainers in Slack
 
-**Thank you for making OpenSRE better!** 🦊
+**Thank you for making SolidAI SRE better!** 🦊

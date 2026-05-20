@@ -118,8 +118,8 @@ fi
 echo "  ✓ Docker running"
 
 # Check if Kind cluster exists
-if ! kind get clusters 2>/dev/null | grep -q "opensre"; then
-    echo -e "${RED}❌ Kind cluster 'opensre' not found!${NC}"
+if ! kind get clusters 2>/dev/null | grep -q "solidai-sre"; then
+    echo -e "${RED}❌ Kind cluster 'solidai-sre' not found!${NC}"
     echo ""
     echo "First-time setup required:"
     echo "  make setup-local"
@@ -128,11 +128,11 @@ if ! kind get clusters 2>/dev/null | grep -q "opensre"; then
 fi
 echo "  ✓ Kind cluster exists"
 
-# Switch to kind-opensre context
-if ! kubectl config use-context kind-opensre >/dev/null 2>&1; then
+# Switch to kind-solidai-sre context
+if ! kubectl config use-context kind-solidai-sre >/dev/null 2>&1; then
     echo -e "${RED}❌ Failed to switch kubectl context!${NC}"
     echo ""
-    echo "Try: kubectl config use-context kind-opensre"
+    echo "Try: kubectl config use-context kind-solidai-sre"
     echo ""
     exit 1
 fi
@@ -150,7 +150,7 @@ fi
 echo "  ✓ Sandbox router deployed"
 
 # Check if credential-resolver is deployed
-if ! kubectl get deployment credential-resolver -n opensre-prod &>/dev/null; then
+if ! kubectl get deployment credential-resolver -n solidai-sre-prod &>/dev/null; then
     echo -e "${RED}❌ Credential resolver not deployed!${NC}"
     echo ""
     echo "The Kind cluster exists but credential proxy isn't installed."
@@ -170,12 +170,12 @@ echo ""
 
 # Build and load image
 echo -e "${BLUE}🔨 Building fresh image...${NC}"
-docker build -q -t opensre-agent:dev .
+docker build -q -t solidai-sre-agent:dev .
 echo -e "${GREEN}✅ Image built${NC}"
 echo ""
 
 echo -e "${BLUE}📦 Loading into Kind...${NC}"
-kind load docker-image opensre-agent:dev --name opensre
+kind load docker-image solidai-sre-agent:dev --name solidai-sre
 echo -e "${GREEN}✅ Image loaded${NC}"
 echo ""
 
@@ -259,7 +259,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 export ROUTER_LOCAL_PORT=8080
-export SANDBOX_IMAGE=opensre-agent:dev
+export SANDBOX_IMAGE=solidai-sre-agent:dev
 
 # Start log watcher in background (streams sandbox pod logs)
 watch_sandbox_logs &

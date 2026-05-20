@@ -335,7 +335,7 @@ export default function SettingsPage() {
       console.error('Logout API failed', e);
     }
     // Also clear any localStorage tokens
-    localStorage.removeItem('opensre_token');
+    localStorage.removeItem('solidai-sre_token');
     // Force reload to clear React state and redirect to login
     window.location.href = '/';
   };
@@ -568,7 +568,7 @@ export default function SettingsPage() {
               <h3 className="font-medium text-forest dark:text-forest-light">Visitor Mode</h3>
               <p className="text-sm text-forest dark:text-forest-light">
                 You&apos;re exploring the playground in read-only mode. Configuration changes are disabled.
-                <a href="mailto:hello@opensre.io?subject=OpenSRE Demo Interest" className="ml-1 underline hover:no-underline">
+                <a href="mailto:hello@solidai-sre.io?subject=SolidAI SRE Demo Interest" className="ml-1 underline hover:no-underline">
                   Contact us
                 </a> to set up your own team.
               </p>
@@ -688,7 +688,7 @@ export default function SettingsPage() {
                   <BookOpen className="w-5 h-5" /> Quick Start Guide
                 </h2>
                 <p className="text-sm text-stone-500 mb-4">
-                  Learn how OpenSRE works and get started with AI-powered investigations.
+                  Learn how SolidAI SRE works and get started with AI-powered investigations.
                 </p>
                 <button
                   onClick={() => setShowQuickStart(true)}
@@ -1142,7 +1142,7 @@ export default function SettingsPage() {
                         </button>
                       </h2>
                       <p className="text-sm text-stone-500 dark:text-stone-400">
-                        Share anonymous usage metrics to help improve OpenSRE
+                        Share anonymous usage metrics to help improve SolidAI SRE
                       </p>
                     </div>
                   </div>

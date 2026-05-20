@@ -28,20 +28,20 @@ from ..auth import (
 logger = structlog.get_logger(__name__)
 
 # OCI registry for the k8s-agent Helm chart (published via helm-publish workflow)
-_K8S_AGENT_OCI_CHART = "oci://registry-1.docker.io/opensre/opensre-k8s-agent"
+_K8S_AGENT_OCI_CHART = "oci://registry-1.docker.io/solidai-sre/solidai-sre-k8s-agent"
 
 
 def _build_helm_command(token: str, cluster_name: str) -> str:
     """Build the Helm install command shown to users."""
     gateway_url = os.environ.get(
-        "K8S_GATEWAY_PUBLIC_URL", "https://ui.opensre.ai/gateway"
+        "K8S_GATEWAY_PUBLIC_URL", "https://ui.solidai-sre.ai/gateway"
     )
     return (
-        f"helm install opensre-agent {_K8S_AGENT_OCI_CHART} "
+        f"helm install solidai-sre-agent {_K8S_AGENT_OCI_CHART} "
         f"--set apiKey={token} "
         f"--set clusterName={cluster_name} "
         f"--set gatewayUrl={gateway_url} "
-        f"--namespace opensre --create-namespace"
+        f"--namespace solidai-sre --create-namespace"
     )
 
 

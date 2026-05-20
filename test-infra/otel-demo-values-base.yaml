@@ -1,4 +1,4 @@
-# OpenSRE E2E Test — otel-demo shared base values
+# SolidAI SRE E2E Test — otel-demo shared base values
 # Cluster-specific overrides in kind/ and eks/ directories
 
 # Fix: Set OTEL exporter endpoint for all services.

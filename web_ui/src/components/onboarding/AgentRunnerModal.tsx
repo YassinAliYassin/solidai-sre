@@ -63,7 +63,7 @@ export function AgentRunnerModal({ onClose, onComplete, isOnboarding = false }: 
               <span className="text-lg">⚡</span>
             </div>
             <div>
-              <h2 className="font-semibold text-stone-900 dark:text-white">Ask OpenSRE</h2>
+              <h2 className="font-semibold text-stone-900 dark:text-white">Ask SolidAI SRE</h2>
               {isOnboarding && (
                 <p className="text-xs text-stone-500 dark:text-stone-400">Try describing an incident to investigate</p>
               )}
@@ -180,7 +180,7 @@ function MessageBubble({ message }: { message: AgentMessage }) {
             <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-forest-light to-forest-dark flex items-center justify-center">
               <span className="text-xs">⚡</span>
             </div>
-            <span className="text-xs text-stone-500 dark:text-stone-400">OpenSRE</span>
+            <span className="text-xs text-stone-500 dark:text-stone-400">SolidAI SRE</span>
           </div>
         )}
 

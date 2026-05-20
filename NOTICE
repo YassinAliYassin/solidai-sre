@@ -1,9 +1,9 @@
-OpenSRE
+SolidAI SRE
 Copyright 2026 Swapnil Dahiphale
 
 Licensed under the Apache License, Version 2.0.
 
-OpenSRE is an AI SRE platform with episodic memory and knowledge graph.
+SolidAI SRE is an AI SRE platform with episodic memory and knowledge graph.
 
 Key additions:
 - Episodic memory system for investigation learning

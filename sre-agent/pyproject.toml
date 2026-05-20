@@ -1,5 +1,5 @@
 [project]
-name = "opensre-sre-agent"
+name = "solidai-sre-sre-agent"
 version = "0.1.0"
 description = "AI-powered SRE agent for automated incident investigation"
 requires-python = ">=3.11"

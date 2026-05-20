@@ -235,7 +235,7 @@ Found **N** places where analytics events would help you understand user behavio
 [If SDK found]: Using existing `{SDK name}` SDK found in `{file path}`.
 
 ---
-*Automated telemetry review by OpenSRE*
+*Automated telemetry review by SolidAI SRE*
 ```
 
 ---

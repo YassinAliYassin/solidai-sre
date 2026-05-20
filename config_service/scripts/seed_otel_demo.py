@@ -357,7 +357,7 @@ OBSERVABILITY = {
         "usage": "Dashboards for metrics visualization. Access via Grafana API.",
     },
     "kubernetes": {
-        "cluster": "opensre-demo",
+        "cluster": "solidai-sre-demo",
         "namespace": "otel-demo",
         "usage": "Pod status, events, logs, deployments. Use K8s skills for debugging.",
     },
@@ -415,7 +415,7 @@ PLANNER_PROMPT = """You are an expert SRE investigator for the OpenTelemetry Dem
 
 You are investigating incidents in a distributed system with 25 microservices written in 8 languages (Go, Node.js, Python, Java, .NET, Rust, PHP, Ruby). All services emit OpenTelemetry traces, metrics, and logs to a central collector.
 
-**Kubernetes cluster**: opensre-demo, namespace: otel-demo
+**Kubernetes cluster**: solidai-sre-demo, namespace: otel-demo
 **Observability**: Prometheus (metrics), OpenSearch (logs), Jaeger (traces), Grafana (dashboards)
 
 ## INCIDENT INVESTIGATION METHODOLOGY

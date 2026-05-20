@@ -1,9 +1,9 @@
-## OpenSRE Web UI (ECS/Fargate)
+## SolidAI SRE Web UI (ECS/Fargate)
 
 This Terraform stack deploys the Next.js web UI to ECS/Fargate in an existing VPC and exposes it via an ALB.
 
 ### What it creates
-- **ECR repo** (optional usage): `opensre-web-ui`
+- **ECR repo** (optional usage): `solidai-sre-web-ui`
 - **CloudWatch log group**
 - **IAM roles** for ECS task execution
 - **ALB + target group + listener** (internal by default)
@@ -23,16 +23,16 @@ This Terraform stack deploys the Next.js web UI to ECS/Fargate in an existing VP
 export AWS_PROFILE=playground
 export AWS_REGION=us-west-2
 
-REPO_URI="$(aws ecr describe-repositories --repository-names opensre-web-ui --query 'repositories[0].repositoryUri' --output text 2>/dev/null || true)"
+REPO_URI="$(aws ecr describe-repositories --repository-names solidai-sre-web-ui --query 'repositories[0].repositoryUri' --output text 2>/dev/null || true)"
 if [ -z "$REPO_URI" ] || [ "$REPO_URI" = "None" ]; then
-  REPO_URI="$(aws ecr create-repository --repository-name opensre-web-ui --query 'repository.repositoryUri' --output text)"
+  REPO_URI="$(aws ecr create-repository --repository-name solidai-sre-web-ui --query 'repository.repositoryUri' --output text)"
 fi
 
 aws ecr get-login-password | docker login --username AWS --password-stdin "${REPO_URI%/*}"
 
 IMAGE_TAG="$(date +%Y%m%d%H%M%S)"
-docker build -t opensre-web-ui:${IMAGE_TAG} ../..
-docker tag opensre-web-ui:${IMAGE_TAG} ${REPO_URI}:${IMAGE_TAG}
+docker build -t solidai-sre-web-ui:${IMAGE_TAG} ../..
+docker tag solidai-sre-web-ui:${IMAGE_TAG} ${REPO_URI}:${IMAGE_TAG}
 docker push ${REPO_URI}:${IMAGE_TAG}
 ```
 

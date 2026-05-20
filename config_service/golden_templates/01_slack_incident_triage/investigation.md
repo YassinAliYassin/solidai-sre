@@ -276,7 +276,7 @@ call_log_analysis_agent(
     service="paymentservice",
     time_range="1h",
     context="## Environment\n"
-            "Cluster: opensre-demo (AWS EKS). Namespace: otel-demo.\n"
+            "Cluster: solidai-sre-demo (AWS EKS). Namespace: otel-demo.\n"
             "Label: app.kubernetes.io/name=payment (NOT paymentservice).\n"
             "Time window: 10:00-11:00 UTC today.\n"
             "\n"

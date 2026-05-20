@@ -1,4 +1,4 @@
-# OpenSRE — Local Development & E2E Testing
+# SolidAI SRE — Local Development & E2E Testing
 #
 # Run 'make help' to see all available targets.
 
@@ -14,7 +14,7 @@
 # Configuration
 # ═══════════════════════════════════════════════════════════════════════
 
-KIND_CLUSTER     := opensre-test
+KIND_CLUSTER     := solidai-sre-test
 KIND_CONFIG      := test-infra/kind/kind-config.yaml
 OTEL_VALUES_BASE := test-infra/otel-demo-values-base.yaml
 OTEL_VALUES_KIND := test-infra/kind/otel-demo-values-kind.yaml
@@ -61,7 +61,7 @@ help:
 	@echo ""
 	$(print-banner)
 	@echo ""
-	@echo "OpenSRE — AI SRE Platform"
+	@echo "SolidAI SRE — AI SRE Platform"
 	@echo ""
 	@echo "Local Development:"
 	@echo "  make dev                Start all services (postgres, config, litellm, agent, web-ui)"
@@ -154,7 +154,7 @@ clean:
 	docker compose down -v --remove-orphans
 
 db-shell:
-	docker compose exec postgres psql -U opensre -d opensre
+	docker compose exec postgres psql -U solidai-sre -d solidai-sre
 
 # ═══════════════════════════════════════════════════════════════════════
 # E2E Testing — Full Setup
@@ -171,7 +171,7 @@ e2e-setup: kind-create otel-images otel-install otel-wait e2e-verify e2e-network
 	@echo "  Grafana:       http://localhost:$(GRAFANA_PORT)"
 	@echo "  Jaeger:        http://localhost:$(JAEGER_PORT)"
 	@echo "  otel Frontend: http://localhost:$(FRONTEND_PORT)"
-	@echo "  OpenSRE Web UI:        http://localhost:$(WEB_UI_PORT)"
+	@echo "  SolidAI SRE Web UI:        http://localhost:$(WEB_UI_PORT)"
 	@echo "  Agent API:     http://localhost:$(AGENT_PORT)"
 	@echo ""
 	@echo "Run 'make e2e-test' to trigger a cart failure investigation."
@@ -198,7 +198,7 @@ e2e-setup-eks:
 	@sleep 30
 	@$(MAKE) e2e-verify
 	@$(MAKE) e2e-agent-eks
-	@echo "[eks] Generating team token for OpenSRE Web UI..."
+	@echo "[eks] Generating team token for SolidAI SRE Web UI..."
 	@TOKEN=$$(curl -s -X POST "http://localhost:$(CONFIG_PORT)/api/v1/admin/orgs/local/teams/default/tokens" \
 		-H "Authorization: Bearer local-admin-token" \
 		-H "Content-Type: application/json" \
@@ -213,13 +213,13 @@ e2e-setup-eks:
 	echo "  Grafana:       http://localhost:3000"; \
 	echo "  Jaeger:        http://localhost:16686"; \
 	echo "  OpenSearch:    http://localhost:9200"; \
-	echo "  OpenSRE Web UI:        http://localhost:$(WEB_UI_PORT)"; \
+	echo "  SolidAI SRE Web UI:        http://localhost:$(WEB_UI_PORT)"; \
 	echo "  Agent API:     http://localhost:$(AGENT_PORT)"; \
 	echo ""; \
 	if [ -n "$$TOKEN" ]; then \
 		echo "  Team token:    $$TOKEN"; \
 		echo ""; \
-		echo "  Paste this token in the OpenSRE Web UI to sign in."; \
+		echo "  Paste this token in the SolidAI SRE Web UI to sign in."; \
 	else \
 		echo "  ⚠ Token generation failed. Run 'make e2e-token' manually."; \
 	fi; \
@@ -378,14 +378,14 @@ e2e-verify:
 # E2E Networking & Agent
 # ═══════════════════════════════════════════════════════════════════════
 
-## Connect kind cluster to OpenSRE Docker networks and generate kubeconfig
+## Connect kind cluster to SolidAI SRE Docker networks and generate kubeconfig
 e2e-network:
 	@echo "Setting up Docker networking..."
 	@bash test-infra/kind/generate-kubeconfig.sh
-	@docker network connect opensre_default $(KIND_CLUSTER)-control-plane 2>/dev/null \
-		|| echo "  already connected to opensre_default"
-	@docker network connect opensre_app_network $(KIND_CLUSTER)-control-plane 2>/dev/null \
-		|| echo "  already connected to opensre_app_network"
+	@docker network connect solidai-sre_default $(KIND_CLUSTER)-control-plane 2>/dev/null \
+		|| echo "  already connected to solidai-sre_default"
+	@docker network connect solidai-sre_app_network $(KIND_CLUSTER)-control-plane 2>/dev/null \
+		|| echo "  already connected to solidai-sre_app_network"
 	@echo "  Networking ready."
 
 ## Restart sre-agent with E2E override (kubeconfig + port-forward tunnels)
@@ -442,7 +442,7 @@ e2e-status:
 		&& echo "  ✅ otel UI     http://localhost:$(FRONTEND_PORT)" \
 		|| echo "  ❌ otel Frontend"
 	@echo ""
-	@echo "OpenSRE services:"
+	@echo "SolidAI SRE services:"
 	@curl -sf http://localhost:$(CONFIG_PORT)/health > /dev/null 2>&1 \
 		&& echo "  ✅ config-service  http://localhost:$(CONFIG_PORT)" \
 		|| echo "  ❌ config-service"

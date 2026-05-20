@@ -33,7 +33,7 @@ export function getUpstreamAuthHeaders(req: NextRequest): Record<string, string>
   // Enterprise default: token stored in httpOnly cookie set by /api/session/login.
   // If the client doesn't provide Authorization, fall back to cookie.
   if (!headers.Authorization) {
-    const cookieToken = req.cookies.get("opensre_session_token")?.value;
+    const cookieToken = req.cookies.get("solidai-sre_session_token")?.value;
     if (cookieToken) {
       headers.Authorization = `Bearer ${cookieToken}`;
     }

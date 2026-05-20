@@ -36,10 +36,10 @@ make dev-reset      # Delete Kind cluster (nuclear option)
 Deployed via Helm charts through GitHub Actions:
 
 ```bash
-# Staging (opensre-demo cluster)
+# Staging (solidai-sre-demo cluster)
 gh workflow run deploy-eks.yml -f environment=staging -f services=all
 
-# Production (opensre-prod cluster)
+# Production (solidai-sre-prod cluster)
 gh workflow run deploy-eks.yml -f environment=production -f services=all
 
 # Deploy a single service
@@ -48,17 +48,17 @@ gh workflow run deploy-eks.yml -f environment=staging -f services=agent
 
 ### Manual Helm Deploy
 ```bash
-aws eks update-kubeconfig --name opensre-demo --region us-west-2
+aws eks update-kubeconfig --name solidai-sre-demo --region us-west-2
 cd charts
-helm upgrade --install opensre ./opensre \
-  -n opensre -f opensre/values.staging.yaml --timeout 5m
-kubectl rollout restart deployment/opensre-agent -n opensre
+helm upgrade --install solidai-sre ./solidai-sre \
+  -n solidai-sre -f solidai-sre/values.staging.yaml --timeout 5m
+kubectl rollout restart deployment/solidai-sre-agent -n solidai-sre
 ```
 
 ### Check Production Status
 ```bash
-kubectl get pods -n opensre-prod
-kubectl logs -n opensre-prod deployment/opensre-agent --tail=50
+kubectl get pods -n solidai-sre-prod
+kubectl logs -n solidai-sre-prod deployment/solidai-sre-agent --tail=50
 ```
 
 ---
@@ -77,7 +77,7 @@ docker compose up -d
 
 ## Architecture
 
-- **Helm charts**: `charts/opensre/` (staging: `values.staging.yaml`, prod: `values.prod.yaml`)
+- **Helm charts**: `charts/solidai-sre/` (staging: `values.staging.yaml`, prod: `values.prod.yaml`)
 - **CI/CD**: `.github/workflows/deploy-eks.yml` builds all services and deploys via Helm
-- **Agent image**: Built from `sre-agent/Dockerfile`, pushed to ECR as `opensre-agent`
+- **Agent image**: Built from `sre-agent/Dockerfile`, pushed to ECR as `solidai-sre-agent`
 - **Local dev**: Kind cluster with `make dev` (uses `sre-agent/scripts/`)

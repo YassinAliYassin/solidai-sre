@@ -38,7 +38,7 @@ from src.db.session import get_session_maker
 
 def create_app() -> FastAPI:
     configure_logging()
-    app = FastAPI(title="OpenSRE Config Service", version="0.1.0")
+    app = FastAPI(title="SolidAI SRE Config Service", version="0.1.0")
 
     @app.on_event("startup")
     async def startup_event():

@@ -1,5 +1,5 @@
 {
-  "$schema": "opensre-template-v1",
+  "$schema": "solidai-sre-template-v1",
   "$template_name": "Git CI Auto-Fix",
   "$template_slug": "git-ci-auto-fix",
   "$description": "Analyzes GitHub Actions failures, identifies root causes, and automatically fixes common issues like formatting, lint errors, and simple test failures. Escalates complex issues with detailed analysis.",

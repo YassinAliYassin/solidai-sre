@@ -23,6 +23,6 @@ categories:
     format: discussion
 
   - name: 📢 Announcements
-    description: Official announcements from the OpenSRE team
+    description: Official announcements from the SolidAI SRE team
     emoji: "📢"
     format: announcement

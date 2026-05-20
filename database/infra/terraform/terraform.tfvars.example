@@ -1,14 +1,14 @@
 aws_region          = "us-west-2"
 aws_profile         = "playground"
-project             = "opensre-config-service"
+project             = "solidai-sre-config-service"
 
-# Existing VPC (opensre-demo-vpc)
+# Existing VPC (solidai-sre-demo-vpc)
 vpc_id              = "vpc-0949ea4cf60f4aa72"
 private_subnet_ids  = ["subnet-0b361bbf3330457b8", "subnet-0ea37c7ded57bf10c"]
 
 # RDS
-db_name                     = "opensre_config"
-db_username                 = "opensre"
+db_name                     = "solidai-sre_config"
+db_username                 = "solidai-sre"
 db_instance_class           = "db.t4g.micro"
 db_engine_version           = "16.11"
 db_allocated_storage_gb     = 20

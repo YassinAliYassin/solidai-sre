@@ -18,7 +18,7 @@ import httpx
 
 CONFIG_SERVICE_URL = os.getenv(
     "CONFIG_SERVICE_URL",
-    "http://opensre-config-service.opensre.svc.cluster.local:8080",
+    "http://solidai-sre-config-service.solidai-sre.svc.cluster.local:8080",
 )
 
 

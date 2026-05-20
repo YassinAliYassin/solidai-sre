@@ -48,7 +48,7 @@ It also applies when an individual is officially representing the community in p
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement at **swapnil@opensre.in**.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement at **swapnil@solidai-sre.in**.
 
 All complaints will be reviewed and investigated promptly and fairly.
 
@@ -90,4 +90,4 @@ Community Impact Guidelines were inspired by [Mozilla's code of conduct enforcem
 
 ## Questions?
 
-If you have questions about this Code of Conduct, please reach out to us at **swapnil@opensre.in** or in [GitHub Discussions](https://github.com/swapnildahiphale/OpenSRE/discussions).
+If you have questions about this Code of Conduct, please reach out to us at **swapnil@solidai-sre.in** or in [GitHub Discussions](https://github.com/swapnildahiphale/SolidAI SRE/discussions).

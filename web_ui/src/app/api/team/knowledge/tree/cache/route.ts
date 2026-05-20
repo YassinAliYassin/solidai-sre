@@ -11,7 +11,7 @@ const RAPTOR_API_URL = process.env.RAPTOR_API_URL || 'http://localhost:8000';
  * first-time loading taking longer.
  */
 export async function GET(request: NextRequest) {
-  const token = request.cookies.get('opensre_session_token')?.value;
+  const token = request.cookies.get('solidai-sre_session_token')?.value;
 
   if (!token) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });

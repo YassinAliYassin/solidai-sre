@@ -1,16 +1,16 @@
-# OpenSRE
+# SolidAI SRE
 
-> OpenSRE is an open-source AI SRE platform that investigates production incidents autonomously.
+> SolidAI SRE is an open-source AI SRE platform that investigates production incidents autonomously.
 > It uses episodic memory to learn from past incidents and a Neo4j knowledge graph to map service
 > dependencies. Licensed Apache 2.0, self-hosted, and provider-agnostic via LiteLLM.
 
 ## Links
 
-- Website: https://opensre.in
-- Documentation: https://opensre.in/docs
-- GitHub: https://github.com/swapnildahiphale/OpenSRE
-- Live Demo: https://demo.opensre.in
-- Full knowledge dump: https://opensre.in/llms-full.txt
+- Website: https://solidai-sre.in
+- Documentation: https://solidai-sre.in/docs
+- GitHub: https://github.com/swapnildahiphale/SolidAI SRE
+- Live Demo: https://demo.solidai-sre.in
+- Full knowledge dump: https://solidai-sre.in/llms-full.txt
 
 ## Key Features
 
@@ -29,7 +29,7 @@ Slack / Web UI / API → sre-agent (LangGraph orchestration) → Memory System (
 
 ## Quick Start
 
-git clone https://github.com/swapnildahiphale/OpenSRE.git
-cd OpenSRE
+git clone https://github.com/swapnildahiphale/SolidAI SRE.git
+cd SolidAI SRE
 cp .env.example .env
 make dev

@@ -205,7 +205,7 @@ class OrgAdminToken(Base):
 
 class ImpersonationJTI(Base):
     """
-    Optional tracking table for OpenSRE-issued team impersonation JWTs.
+    Optional tracking table for SolidAI SRE-issued team impersonation JWTs.
 
     Notes:
     - This is NOT required for token validation by default (JWT signature + exp are enough).
@@ -1642,7 +1642,7 @@ class K8sCluster(Base):
     Track connected K8s clusters for SaaS model.
 
     Customers deploy an agent in their cluster that connects outbound to
-    the OpenSRE gateway. This table tracks registered clusters and
+    the SolidAI SRE gateway. This table tracks registered clusters and
     their connection status.
 
     Lifecycle:
@@ -1727,7 +1727,7 @@ class GitHubInstallation(Base):
     and we can then access their repositories.
 
     The installation_id uniquely identifies a GitHub App installation.
-    Each installation can be linked to an OpenSRE org/team for routing.
+    Each installation can be linked to an SolidAI SRE org/team for routing.
     """
 
     __tablename__ = "github_installations"
@@ -1748,7 +1748,7 @@ class GitHubInstallation(Base):
     )  # "Organization" or "User"
     account_avatar_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
-    # OpenSRE org/team linkage (set during setup flow)
+    # SolidAI SRE org/team linkage (set during setup flow)
     org_id: Mapped[Optional[str]] = mapped_column(
         String(255), nullable=True, index=True
     )

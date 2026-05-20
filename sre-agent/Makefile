@@ -3,7 +3,7 @@
 help: ## Show available commands
 	@echo ""
 	@echo "╔═══════════════════════════════════════════════════════════════╗"
-	@echo "║           SRE Agent - OpenSRE Investigation               ║"
+	@echo "║           SRE Agent - SolidAI SRE Investigation               ║"
 	@echo "╚═══════════════════════════════════════════════════════════════╝"
 	@echo ""
 	@echo "🏠 LOCAL DEVELOPMENT"
@@ -35,8 +35,8 @@ test-local: ## 🏠 Quick test agent locally (no K8s, fast iteration)
 
 dev-clean: ## 🏠 Clean up local sandboxes manually
 	@echo "🧹 Cleaning up..."
-	@if ! kubectl config current-context | grep -q "kind-opensre"; then \
-		kubectl config use-context kind-opensre 2>/dev/null || true; \
+	@if ! kubectl config current-context | grep -q "kind-solidai-sre"; then \
+		kubectl config use-context kind-solidai-sre 2>/dev/null || true; \
 	fi
 	@kubectl delete sandbox --all --timeout=30s 2>/dev/null || true
 	@echo "✅ Cleaned"
@@ -46,7 +46,7 @@ dev-reset: ## 🏠 Delete Kind cluster and start fresh (nuclear option)
 	@read -p "Continue? (y/N) " -n 1 -r; \
 	echo; \
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
-		kind delete cluster --name opensre || true; \
+		kind delete cluster --name solidai-sre || true; \
 		echo "✅ Deleted. Run 'make setup-local' to recreate"; \
 	fi
 

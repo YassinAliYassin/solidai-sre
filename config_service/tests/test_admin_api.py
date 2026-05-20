@@ -283,7 +283,7 @@ def test_admin_accepts_oidc_when_enabled(monkeypatch):
 
     monkeypatch.setenv("OIDC_ENABLED", "1")
     monkeypatch.setenv("OIDC_ISSUER", "https://issuer.example")
-    monkeypatch.setenv("OIDC_AUDIENCE", "opensre-config-service")
+    monkeypatch.setenv("OIDC_AUDIENCE", "solidai-sre-config-service")
     monkeypatch.setenv("OIDC_JWKS_JSON", __import__("json").dumps(jwks))
     monkeypatch.setenv("OIDC_ADMIN_GROUP", "admins")
     monkeypatch.setenv("OIDC_GROUPS_CLAIM", "groups")
@@ -293,7 +293,7 @@ def test_admin_accepts_oidc_when_enabled(monkeypatch):
         {
             "sub": "user1",
             "iss": "https://issuer.example",
-            "aud": "opensre-config-service",
+            "aud": "solidai-sre-config-service",
             "groups": ["admins"],
             "exp": int(time.time()) + 3600,
         },

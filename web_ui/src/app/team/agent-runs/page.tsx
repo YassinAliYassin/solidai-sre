@@ -451,7 +451,7 @@ export default function TeamAgentRunsPage() {
                   <Sparkles className="w-5 h-5 text-forest" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-stone-900 dark:text-white">Ask OpenSRE</h2>
+                  <h2 className="font-semibold text-stone-900 dark:text-white">Ask SolidAI SRE</h2>
                   <p className="text-xs text-stone-500">AI-powered incident investigation</p>
                 </div>
               </div>

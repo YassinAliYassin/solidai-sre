@@ -4,7 +4,7 @@
 
 SolidAI SRE is an open-source AI SRE platform that investigates production incidents for **Solid Solutions** and **SolidAI** infrastructure. It uses LLM-powered agents with episodic memory and a Neo4j knowledge graph to diagnose issues, identify root causes, and produce structured investigation reports.
 
-Built on OpenSRE foundation, customized for African tech ecosystem.
+Built on SolidAI SRE foundation, customized for African tech ecosystem.
 
 ## Architecture
 

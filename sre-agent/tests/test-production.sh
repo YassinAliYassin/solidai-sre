@@ -5,20 +5,20 @@
 set -e
 
 # Namespace for production deployment (server + sandboxes in same namespace)
-NAMESPACE="opensre-prod"
+NAMESPACE="solidai-sre-prod"
 
 # Get LoadBalancer URL from Service
-PROD_URL=$(kubectl get svc opensre-server-svc -n $NAMESPACE \
+PROD_URL=$(kubectl get svc solidai-sre-server-svc -n $NAMESPACE \
     -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
 
 if [ -z "$PROD_URL" ]; then
     echo "❌ Failed to get LoadBalancer URL. Is the service deployed?"
-    echo "   Run: kubectl get svc opensre-server-svc -n $NAMESPACE"
-    echo "   Check status: kubectl describe svc opensre-server-svc -n $NAMESPACE"
+    echo "   Run: kubectl get svc solidai-sre-server-svc -n $NAMESPACE"
+    echo "   Check status: kubectl describe svc solidai-sre-server-svc -n $NAMESPACE"
     exit 1
 fi
 
-echo "🧪 OpenSRE Production E2E Test Suite"
+echo "🧪 SolidAI SRE Production E2E Test Suite"
 echo "=========================================="
 echo "LoadBalancer URL: $PROD_URL"
 echo "Namespace: $NAMESPACE"
@@ -132,7 +132,7 @@ if kubectl get sandbox "$SANDBOX_NAME_2" -n $NAMESPACE &>/dev/null; then
     echo "✅ Test 4 PASSED - Second sandbox created for concurrent investigation"
     echo "   Sandbox 1: $SANDBOX_NAME"
     echo "   Sandbox 2: $SANDBOX_NAME_2"
-    kubectl get sandbox -n $NAMESPACE -l managed-by=opensre-server -o custom-columns=NAME:.metadata.name,RUNTIME:.spec.podTemplate.spec.runtimeClassName
+    kubectl get sandbox -n $NAMESPACE -l managed-by=solidai-sre-server -o custom-columns=NAME:.metadata.name,RUNTIME:.spec.podTemplate.spec.runtimeClassName
 else
     echo "❌ Test 4 FAILED - Second sandbox not found"
     echo "   Expected: $SANDBOX_NAME_2 in '$NAMESPACE' namespace"
@@ -145,7 +145,7 @@ sleep 2
 # Test 5: Verify gVisor runtime
 echo "Test 5: Verify gVisor Runtime"
 echo "------------------------------"
-SANDBOXES=$(kubectl get sandbox -n $NAMESPACE -o json | jq -r '.items[] | select(.metadata.labels["managed-by"]=="opensre-server") | "\(.metadata.name) \(.spec.podTemplate.spec.runtimeClassName)"')
+SANDBOXES=$(kubectl get sandbox -n $NAMESPACE -o json | jq -r '.items[] | select(.metadata.labels["managed-by"]=="solidai-sre-server") | "\(.metadata.name) \(.spec.podTemplate.spec.runtimeClassName)"')
 
 echo "Active sandboxes:"
 echo "$SANDBOXES"
@@ -168,11 +168,11 @@ echo "  LoadBalancer: http://$PROD_URL"
 echo "  Namespace: $NAMESPACE"
 echo ""
 echo "Created sandboxes:"
-kubectl get sandbox -n $NAMESPACE -l managed-by=opensre-server -o custom-columns=NAME:.metadata.name,RUNTIME:.spec.podTemplate.spec.runtimeClassName,AGE:.metadata.creationTimestamp
+kubectl get sandbox -n $NAMESPACE -l managed-by=solidai-sre-server -o custom-columns=NAME:.metadata.name,RUNTIME:.spec.podTemplate.spec.runtimeClassName,AGE:.metadata.creationTimestamp
 
 echo ""
 echo "Active pods:"
-kubectl get pods -n $NAMESPACE -l app=opensre-server
+kubectl get pods -n $NAMESPACE -l app=solidai-sre-server
 
 echo ""
 echo "Cleanup:"

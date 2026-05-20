@@ -1,6 +1,6 @@
-# OpenSRE Template Library
+# SolidAI SRE Template Library
 
-This directory contains all production-ready templates for the OpenSRE AI SRE platform.
+This directory contains all production-ready templates for the SolidAI SRE AI SRE platform.
 
 ## Overview
 
@@ -253,7 +253,7 @@ Each template JSON follows this structure:
 
 ```json
 {
-  "$schema": "opensre-template-v1",
+  "$schema": "solidai-sre-template-v1",
   "$template_name": "Template Name",
   "$template_slug": "template-slug",
   "$description": "Brief description",

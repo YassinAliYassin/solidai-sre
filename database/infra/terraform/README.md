@@ -1,6 +1,6 @@
-## Terraform: OpenSRE Config Service (RDS PostgreSQL)
+## Terraform: SolidAI SRE Config Service (RDS PostgreSQL)
 
-This Terraform module provisions an **AWS RDS PostgreSQL** instance inside an **existing VPC**, intended to be used by `opensre-config-service` running inside the same VPC (e.g., alongside your OTel demo microservices).
+This Terraform module provisions an **AWS RDS PostgreSQL** instance inside an **existing VPC**, intended to be used by `solidai-sre-config-service` running inside the same VPC (e.g., alongside your OTel demo microservices).
 
 ### What it creates
 - **RDS PostgreSQL** instance (private, not publicly accessible)
@@ -26,7 +26,7 @@ This Terraform module provisions an **AWS RDS PostgreSQL** instance inside an **
 cp terraform.tfvars.example terraform.tfvars
 ```
 
-2) Edit `terraform.tfvars` (VPC + private subnets already filled for `opensre-demo-vpc`).
+2) Edit `terraform.tfvars` (VPC + private subnets already filled for `solidai-sre-demo-vpc`).
 
 3) Run:
 

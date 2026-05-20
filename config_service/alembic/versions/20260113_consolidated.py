@@ -1,4 +1,4 @@
-"""Consolidated schema for OpenSRE Config Service
+"""Consolidated schema for SolidAI SRE Config Service
 
 Revision ID: 20260113_consolidated
 Revises:

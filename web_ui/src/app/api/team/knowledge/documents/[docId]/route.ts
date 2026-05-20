@@ -7,7 +7,7 @@ export async function DELETE(
   { params }: { params: Promise<{ docId: string }> }
 ) {
   const { docId } = await params;
-  const token = request.cookies.get('opensre_session_token')?.value;
+  const token = request.cookies.get('solidai-sre_session_token')?.value;
   
   if (!token) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });

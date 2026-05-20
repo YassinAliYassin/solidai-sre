@@ -1,6 +1,6 @@
-# OpenSRE E2E Test Scripts
+# SolidAI SRE E2E Test Scripts
 
-Automated end-to-end testing for OpenSRE.
+Automated end-to-end testing for SolidAI SRE.
 
 ## Quick Start
 
@@ -37,7 +37,7 @@ Full Slack integration test:
 4. Checks server-side logs
 
 **Requirements:**
-- `SLACK_BOT_TOKEN` in AWS Secrets Manager (`opensre/prod/slack_bot_token`)
+- `SLACK_BOT_TOKEN` in AWS Secrets Manager (`solidai-sre/prod/slack_bot_token`)
 - Slack channel ID configured
 
 ### `e2e_test_otel_demo.py`
@@ -92,7 +92,7 @@ NEO4J_URI=bolt://localhost:7688 NEO4J_USERNAME=neo4j NEO4J_PASSWORD=localdev \
   python3 scripts/populate_neo4j.py
 ```
 
-After loading, runs a quick verification query and prints a sample blast radius for `cartservice`. Used to seed the knowledge graph that OpenSRE's agents use for topology-aware investigations.
+After loading, runs a quick verification query and prints a sample blast radius for `cartservice`. Used to seed the knowledge graph that SolidAI SRE's agents use for topology-aware investigations.
 
 ## Environment Variables
 
@@ -101,9 +101,9 @@ After loading, runs a quick verification query and prints a sample blast radius 
 | `AWS_PROFILE` | `playground` | AWS profile for secrets |
 | `AWS_REGION` | `us-west-2` | AWS region |
 | `SLACK_CHANNEL_ID` | `C0A43KYJE03` | Slack channel for testing |
-| `AGENT_NAMESPACE` | `opensre` | K8s namespace for OpenSRE |
+| `AGENT_NAMESPACE` | `solidai-sre` | K8s namespace for SolidAI SRE |
 | `OTEL_NAMESPACE` | `otel-demo` | K8s namespace for otel-demo |
-| `WEB_UI_URL` | `https://ui.opensre.ai` | Web UI base URL |
+| `WEB_UI_URL` | `https://ui.solidai-sre.ai` | Web UI base URL |
 
 ## CI/CD Integration
 
@@ -112,7 +112,7 @@ Add to GitHub Actions:
 ```yaml
 - name: Run E2E Tests
   run: |
-    aws eks update-kubeconfig --name opensre-demo --region us-west-2
+    aws eks update-kubeconfig --name solidai-sre-demo --region us-west-2
     ./scripts/health_check.sh
     ./scripts/e2e_test_all.sh
 ```

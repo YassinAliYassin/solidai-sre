@@ -9,7 +9,7 @@ set -euo pipefail
 # control-plane container by name and enables insecure-skip-tls-verify.
 # ─────────────────────────────────────────────────────────────────
 
-CLUSTER_NAME="${1:-opensre-test}"
+CLUSTER_NAME="${1:-solidai-sre-test}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 OUTPUT="$SCRIPT_DIR/kubeconfig-docker.yaml"
 

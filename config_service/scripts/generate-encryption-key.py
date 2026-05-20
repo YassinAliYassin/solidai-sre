@@ -21,5 +21,5 @@ if __name__ == "__main__":
     print()
     print("Or add to AWS Secrets Manager:")
     print(
-        f'aws secretsmanager create-secret --name opensre/prod/config-service --secret-string \'{{"encryption_key":"{key}"}}\''
+        f'aws secretsmanager create-secret --name solidai-sre/prod/config-service --secret-string \'{{"encryption_key":"{key}"}}\''
     )

@@ -10,7 +10,7 @@ export const maxDuration = 300;
  * Search for nodes in the tree (for highlighting in visualization)
  */
 export async function POST(request: NextRequest) {
-  const token = request.cookies.get('opensre_session_token')?.value;
+  const token = request.cookies.get('solidai-sre_session_token')?.value;
 
   if (!token) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });

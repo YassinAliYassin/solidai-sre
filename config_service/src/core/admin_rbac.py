@@ -15,7 +15,7 @@ def _load_group_permission_map() -> dict[str, list[str]]:
     Load a mapping of OIDC group -> permissions list.
 
     Env:
-      ADMIN_GROUP_PERMISSIONS_JSON='{"opensre-admin":["admin:*"],"opensre-provisioner":["admin:provision"]}'
+      ADMIN_GROUP_PERMISSIONS_JSON='{"solidai-sre-admin":["admin:*"],"solidai-sre-provisioner":["admin:provision"]}'
     """
     raw = (os.getenv("ADMIN_GROUP_PERMISSIONS_JSON") or "").strip()
     if not raw:

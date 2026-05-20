@@ -45,8 +45,8 @@ def authenticate_team_request(
 
     # 2 dots may be:
     # - OIDC JWT (RS256)
-    # - OpenSRE-issued team impersonation JWT (HS256)
-    # - OpenSRE-issued visitor JWT (HS256)
+    # - SolidAI SRE-issued team impersonation JWT (HS256)
+    # - SolidAI SRE-issued visitor JWT (HS256)
     if dots == 2:
         # Check for visitor token first
         secret = (os.getenv("IMPERSONATION_JWT_SECRET") or "").strip()

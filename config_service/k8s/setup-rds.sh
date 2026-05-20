@@ -5,7 +5,7 @@ set -e
 
 REGION="us-west-2"
 EKS_VPC="vpc-0d0acec56464027c2"
-RDS_INSTANCE_ID="opensre-prod-config"
+RDS_INSTANCE_ID="solidai-sre-prod-config"
 DB_NAME="configservice"
 DB_USERNAME="configadmin"
 
@@ -40,7 +40,7 @@ echo "   Subnets: $PRIVATE_SUBNETS"
 echo ""
 echo "2️⃣  Creating DB subnet group..."
 aws rds create-db-subnet-group \
-  --db-subnet-group-name opensre-prod-rds \
+  --db-subnet-group-name solidai-sre-prod-rds \
   --db-subnet-group-description "RDS subnet group in EKS VPC" \
   --subnet-ids $PRIVATE_SUBNETS \
   --region $REGION 2>/dev/null || echo "   (already exists)"
@@ -65,14 +65,14 @@ EKS_CLUSTER_SG=$(aws ec2 describe-security-groups \
 
 # Check if RDS security group exists
 RDS_SG=$(aws ec2 describe-security-groups \
-  --filters "Name=vpc-id,Values=$EKS_VPC" "Name=group-name,Values=opensre-prod-rds" \
+  --filters "Name=vpc-id,Values=$EKS_VPC" "Name=group-name,Values=solidai-sre-prod-rds" \
   --region $REGION \
   --query 'SecurityGroups[0].GroupId' \
   --output text 2>/dev/null || echo "None")
 
 if [ "$RDS_SG" == "None" ] || [ -z "$RDS_SG" ]; then
   RDS_SG=$(aws ec2 create-security-group \
-    --group-name opensre-prod-rds \
+    --group-name solidai-sre-prod-rds \
     --description "RDS security group for config-service" \
     --vpc-id $EKS_VPC \
     --region $REGION \
@@ -105,12 +105,12 @@ echo "4️⃣  Generating credentials..."
 DB_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)
 
 aws secretsmanager create-secret \
-  --name "opensre/prod/rds" \
+  --name "solidai-sre/prod/rds" \
   --description "RDS credentials for config-service" \
   --secret-string "{\"host\":\"TBD\",\"port\":\"5432\",\"dbname\":\"$DB_NAME\",\"username\":\"$DB_USERNAME\",\"password\":\"$DB_PASSWORD\"}" \
   --region $REGION 2>/dev/null || \
 aws secretsmanager update-secret \
-  --secret-id "opensre/prod/rds" \
+  --secret-id "solidai-sre/prod/rds" \
   --secret-string "{\"host\":\"TBD\",\"port\":\"5432\",\"dbname\":\"$DB_NAME\",\"username\":\"$DB_USERNAME\",\"password\":\"$DB_PASSWORD\"}" \
   --region $REGION
 
@@ -127,7 +127,7 @@ aws rds create-db-instance \
   --master-username $DB_USERNAME \
   --master-user-password "$DB_PASSWORD" \
   --allocated-storage 20 \
-  --db-subnet-group-name opensre-prod-rds \
+  --db-subnet-group-name solidai-sre-prod-rds \
   --vpc-security-group-ids $RDS_SG \
   --db-name $DB_NAME \
   --storage-encrypted \
@@ -146,9 +146,9 @@ RDS_ENDPOINT=$(aws rds describe-db-instances \
   --query 'DBInstances[0].Endpoint.Address' \
   --output text)
 
-CURRENT_SECRET=$(aws secretsmanager get-secret-value --secret-id "opensre/prod/rds" --region $REGION --query 'SecretString' --output text)
+CURRENT_SECRET=$(aws secretsmanager get-secret-value --secret-id "solidai-sre/prod/rds" --region $REGION --query 'SecretString' --output text)
 UPDATED_SECRET=$(echo "$CURRENT_SECRET" | jq --arg host "$RDS_ENDPOINT" '.host = $host')
-aws secretsmanager update-secret --secret-id "opensre/prod/rds" --secret-string "$UPDATED_SECRET" --region $REGION
+aws secretsmanager update-secret --secret-id "solidai-sre/prod/rds" --secret-string "$UPDATED_SECRET" --region $REGION
 
 echo ""
 echo "✅ RDS SETUP COMPLETE!"

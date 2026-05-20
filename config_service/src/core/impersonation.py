@@ -4,8 +4,8 @@ import os
 import time
 from typing import Any, Dict, Optional
 
-DEFAULT_IMPERSONATION_JWT_AUDIENCE = "opensre-agent-runtime"
-LEGACY_IMPERSONATION_JWT_AUDIENCE = "opensre-config-service"
+DEFAULT_IMPERSONATION_JWT_AUDIENCE = "solidai-sre-agent-runtime"
+LEGACY_IMPERSONATION_JWT_AUDIENCE = "solidai-sre-config-service"
 
 
 def get_impersonation_jwt_secret() -> str:
@@ -60,7 +60,7 @@ def mint_team_impersonation_token(
     jti = __import__("uuid").uuid4().hex
 
     claims: Dict[str, Any] = {
-        "iss": "opensre-config-service",
+        "iss": "solidai-sre-config-service",
         # Dedicated audience to reduce cross-service token reuse.
         # This token is intended to be used by the agent runtime when calling config_service.
         "aud": get_impersonation_jwt_audience(),
@@ -99,7 +99,7 @@ def verify_team_impersonation_token(token: str) -> Dict[str, Any]:
                 key=get_impersonation_jwt_secret(),
                 algorithms=["HS256"],
                 audience=aud,
-                issuer="opensre-config-service",
+                issuer="solidai-sre-config-service",
                 options={
                     "require": [
                         "exp",
@@ -180,7 +180,7 @@ def create_visitor_token(
     jti = __import__("uuid").uuid4().hex
 
     claims: Dict[str, Any] = {
-        "iss": "opensre-config-service",
+        "iss": "solidai-sre-config-service",
         "aud": get_impersonation_jwt_audience(),
         "sub": f"visitor:{session_id}",
         "email": email,
@@ -223,7 +223,7 @@ def verify_visitor_token(token: str) -> Dict[str, Any]:
                 key=get_impersonation_jwt_secret(),
                 algorithms=["HS256"],
                 audience=aud,
-                issuer="opensre-config-service",
+                issuer="solidai-sre-config-service",
                 options={
                     "require": [
                         "exp",

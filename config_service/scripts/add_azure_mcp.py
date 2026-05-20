@@ -46,7 +46,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     print("❌ Error: DATABASE_URL environment variable not set")
     print(
-        "   Example: export DATABASE_URL='postgresql://user:pass@localhost/opensre_config'"
+        "   Example: export DATABASE_URL='postgresql://user:pass@localhost/solidai-sre_config'"
     )
     sys.exit(1)
 

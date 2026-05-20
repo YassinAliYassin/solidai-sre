@@ -13,7 +13,7 @@ variable "aws_profile" {
 variable "project" {
   type        = string
   description = "Tag prefix / project name"
-  default     = "opensre-config-service"
+  default     = "solidai-sre-config-service"
 }
 
 variable "vpc_id" {
@@ -31,13 +31,13 @@ variable "private_subnet_ids" {
 variable "db_name" {
   type        = string
   description = "Initial database name"
-  default     = "opensre_config"
+  default     = "solidai-sre_config"
 }
 
 variable "db_username" {
   type        = string
   description = "Master username"
-  default     = "opensre"
+  default     = "solidai-sre"
 }
 
 variable "db_instance_class" {
@@ -49,7 +49,7 @@ variable "db_instance_class" {
 variable "db_identifier" {
   type        = string
   description = "RDS DB instance identifier (DBInstanceIdentifier)"
-  default     = "opensre-config-service-postgres"
+  default     = "solidai-sre-config-service-postgres"
 }
 
 variable "db_security_group_name" {
@@ -73,7 +73,7 @@ variable "db_parameter_group_name" {
 variable "db_secret_name" {
   type        = string
   description = "Secrets Manager secret name that stores RDS connection info (ForceNew; must match existing if importing)."
-  default     = "opensre-config-service/rds"
+  default     = "solidai-sre-config-service/rds"
 }
 
 variable "db_engine_version" {

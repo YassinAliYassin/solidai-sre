@@ -13,7 +13,7 @@ variable "aws_profile" {
 variable "project" {
   type        = string
   description = "Project name prefix"
-  default     = "opensre-config-service"
+  default     = "solidai-sre-config-service"
 }
 
 variable "vpc_id" {
@@ -79,19 +79,19 @@ variable "image_tag" {
 variable "token_pepper_secret_name" {
   type        = string
   description = "Secrets Manager secret name containing TOKEN_PEPPER as a plaintext secret string"
-  default     = "opensre-config-service/token_pepper"
+  default     = "solidai-sre-config-service/token_pepper"
 }
 
 variable "admin_token_secret_name" {
   type        = string
   description = "Secrets Manager secret name containing ADMIN_TOKEN as a plaintext secret string"
-  default     = "opensre-config-service/admin_token"
+  default     = "solidai-sre-config-service/admin_token"
 }
 
 variable "db_secret_name" {
   type        = string
   description = "Secrets Manager secret name that contains RDS connection JSON {username,password,host,port,dbname}"
-  default     = "opensre-config-service/rds"
+  default     = "solidai-sre-config-service/rds"
 }
 
 variable "tags" {

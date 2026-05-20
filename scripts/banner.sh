@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shared OpenSRE ASCII banner — source this from other scripts
+# Shared SolidAI SRE ASCII banner — source this from other scripts
 # Usage: source scripts/banner.sh && print_banner [color]
 
 print_banner() {

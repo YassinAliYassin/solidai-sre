@@ -1,4 +1,4 @@
-# OpenSRE Architecture
+# SolidAI SRE Architecture
 
 ## System Overview
 

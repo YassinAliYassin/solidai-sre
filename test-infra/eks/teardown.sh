@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ─────────────────────────────────────────────────────────────────
-# OpenSRE E2E — EKS teardown
+# SolidAI SRE E2E — EKS teardown
 # Uninstalls otel-demo from EKS and stops port-forward tunnels.
 # Does NOT delete the EKS cluster itself.
 # ─────────────────────────────────────────────────────────────────

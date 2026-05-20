@@ -1,4 +1,4 @@
-"""OpenSRE Episodic Memory System."""
+"""SolidAI SRE Episodic Memory System."""
 
 from .hints import format_memory_hints_for_prompt
 from .integration import (

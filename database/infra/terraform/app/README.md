@@ -1,6 +1,6 @@
-## Terraform: OpenSRE Config Service (App) — Internal UI Endpoint
+## Terraform: SolidAI SRE Config Service (App) — Internal UI Endpoint
 
-This stack deploys the **opensre-config-service API + UI** as an **internal-only** endpoint:
+This stack deploys the **solidai-sre-config-service API + UI** as an **internal-only** endpoint:
 - **ECS Fargate** service (private subnets)
 - **Internal ALB** (private subnets) routing to the service
 - **ECR** repository to store the container image

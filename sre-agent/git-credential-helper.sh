@@ -1,5 +1,5 @@
 #!/bin/sh
-# Git credential helper for OpenSRE sandbox environment.
+# Git credential helper for SolidAI SRE sandbox environment.
 #
 # Returns the sandbox JWT as a Basic auth password. The credential-resolver's
 # /git/ proxy validates the JWT and injects real GitHub credentials when

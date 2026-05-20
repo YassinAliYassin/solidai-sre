@@ -108,7 +108,7 @@ INTEGRATION_SCHEMAS = [
         "name": "Coralogix",
         "category": "observability",
         "description": "Coralogix observability platform for logs, metrics, and traces",
-        "docs_url": "https://docs.opensre.ai/data-sources/coralogix",
+        "docs_url": "https://docs.solidai-sre.ai/data-sources/coralogix",
         "display_order": 15,
         "featured": True,
         "fields": [

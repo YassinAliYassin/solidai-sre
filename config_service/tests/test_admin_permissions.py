@@ -16,12 +16,12 @@ def test_admin_oidc_permissions_derived_from_groups(monkeypatch):
         '{"keys":[{"kty":"RSA","kid":"k","use":"sig","n":"AQAB","e":"AQAB"}]}',
     )
     monkeypatch.setenv("OIDC_GROUPS_CLAIM", "groups")
-    monkeypatch.setenv("OIDC_ADMIN_GROUP", "opensre-config-admin")
+    monkeypatch.setenv("OIDC_ADMIN_GROUP", "solidai-sre-config-admin")
 
     monkeypatch.setenv("ADMIN_PERMISSIONS_DEFAULT", "admin:read")
     monkeypatch.setenv(
         "ADMIN_GROUP_PERMISSIONS_JSON",
-        '{"opensre-config-admin":["admin:provision","admin:agent:run"],"opensre-auditor":"admin:audit"}',
+        '{"solidai-sre-config-admin":["admin:provision","admin:agent:run"],"solidai-sre-auditor":"admin:audit"}',
     )
 
     # Patch verify_oidc_jwt to skip crypto and return claims
@@ -32,7 +32,7 @@ def test_admin_oidc_permissions_derived_from_groups(monkeypatch):
         return {
             "sub": "user1",
             "email": "user1@example.com",
-            "groups": ["opensre-config-admin", "opensre-auditor"],
+            "groups": ["solidai-sre-config-admin", "solidai-sre-auditor"],
         }
 
     monkeypatch.setattr(oidc_mod, "verify_oidc_jwt", fake_verify)

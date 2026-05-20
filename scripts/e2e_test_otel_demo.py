@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-OpenSRE E2E Fault Injection Test
+SolidAI SRE E2E Fault Injection Test
 
-Tests the OpenSRE agent's ability to investigate real faults in a Kubernetes
+Tests the SolidAI SRE agent's ability to investigate real faults in a Kubernetes
 cluster running OpenTelemetry Demo.
 
 Prerequisites:
-- kind cluster "opensre-test" with otel-demo deployed
-- OpenSRE stack running (docker compose up -d)
+- kind cluster "solidai-sre-test" with otel-demo deployed
+- SolidAI SRE stack running (docker compose up -d)
 - NodePort access: Prometheus (9090), Grafana (3001), frontend (8090)
 
 Usage:
@@ -321,7 +321,7 @@ def check_prometheus(service_name: str) -> dict:
 
 
 def call_agent(prompt: str, timeout: int = 900) -> dict:
-    """Call the OpenSRE agent via SSE streaming /investigate endpoint."""
+    """Call the SolidAI SRE agent via SSE streaming /investigate endpoint."""
     print(f"   Sending to {AGENT_URL}/investigate ...")
     print(f"   Prompt: {prompt[:80]}...")
 
@@ -462,7 +462,7 @@ def run_test(fault_type: str = "cart") -> bool:
         return False
 
     print("=" * 70)
-    print(f"  OpenSRE E2E Test: {fault_type}")
+    print(f"  SolidAI SRE E2E Test: {fault_type}")
     ctx = KUBE_CONTEXT or "(current context)"
     print(f"  Cluster: {ctx} | Agent: {AGENT_URL}")
     print("=" * 70)
@@ -535,7 +535,7 @@ def run_all() -> bool:
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="OpenSRE E2E Fault Injection Test")
+    parser = argparse.ArgumentParser(description="SolidAI SRE E2E Fault Injection Test")
     parser.add_argument(
         "--fault",
         choices=list(AVAILABLE_FAULTS.keys()) + ["all"],

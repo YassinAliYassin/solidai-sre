@@ -30,7 +30,7 @@ python .claude/skills/infrastructure-kubernetes/scripts/describe_deployment.py <
 ```
 
 **NEVER run kubectl directly. NEVER run scripts without --cluster-id.**
-If `list_clusters.py` returns no clusters, tell the user they need to install the OpenSRE k8s-agent on their cluster first.
+If `list_clusters.py` returns no clusters, tell the user they need to install the SolidAI SRE k8s-agent on their cluster first.
 
 ## QUICK REFERENCE
 

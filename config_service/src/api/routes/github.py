@@ -32,11 +32,11 @@ def _get_github_app_config() -> dict:
         "client_secret": os.getenv("GITHUB_APP_CLIENT_SECRET", ""),
         "private_key": os.getenv("GITHUB_APP_PRIVATE_KEY", ""),
         "webhook_secret": os.getenv("GITHUB_APP_WEBHOOK_SECRET", ""),
-        "app_name": os.getenv("GITHUB_APP_NAME", "opensre"),
+        "app_name": os.getenv("GITHUB_APP_NAME", "solidai-sre"),
         # Where to redirect after setup
         "setup_redirect_url": os.getenv(
             "GITHUB_SETUP_REDIRECT_URL",
-            "https://ui.opensre.ai/integrations/github/setup",
+            "https://ui.solidai-sre.ai/integrations/github/setup",
         ),
     }
 

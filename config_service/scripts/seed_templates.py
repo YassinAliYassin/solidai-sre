@@ -24,7 +24,7 @@ from src.db.session import get_session_maker
 # Template metadata mapping (icons and detailed descriptions)
 TEMPLATE_METADATA = {
     "01_slack_incident_triage.json": {
-        "icon_url": "https://cdn.opensre.ai/icons/incident-triage.svg",
+        "icon_url": "https://cdn.solidai-sre.ai/icons/incident-triage.svg",
         "detailed_description": """# Slack Incident Triage
 
 Fast root cause analysis optimized for production incidents triggered via Slack.
@@ -47,7 +47,7 @@ Fast root cause analysis optimized for production incidents triggered via Slack.
         """,
     },
     "02_git_ci_auto_fix.json": {
-        "icon_url": "https://cdn.opensre.ai/icons/ci-autofix.svg",
+        "icon_url": "https://cdn.solidai-sre.ai/icons/ci-autofix.svg",
         "detailed_description": """# Git CI Issue Triage & Auto-Fix
 
 Analyzes GitHub Actions and CodePipeline failures and can automatically fix common issues.
@@ -71,7 +71,7 @@ Analyzes GitHub Actions and CodePipeline failures and can automatically fix comm
         """,
     },
     "03_aws_cost_reduction.json": {
-        "icon_url": "https://cdn.opensre.ai/icons/finops.svg",
+        "icon_url": "https://cdn.solidai-sre.ai/icons/finops.svg",
         "detailed_description": """# Cloud Cost Optimization
 
 FinOps agent that finds cost savings opportunities across your cloud infrastructure.
@@ -95,7 +95,7 @@ FinOps agent that finds cost savings opportunities across your cloud infrastruct
         """,
     },
     "04_coding_assistant.json": {
-        "icon_url": "https://cdn.opensre.ai/icons/coding.svg",
+        "icon_url": "https://cdn.solidai-sre.ai/icons/coding.svg",
         "detailed_description": """# Coding Assistant
 
 AI senior software engineer for code reviews, refactoring, and test generation.
@@ -120,7 +120,7 @@ AI senior software engineer for code reviews, refactoring, and test generation.
         """,
     },
     "05_data_migration.json": {
-        "icon_url": "https://cdn.opensre.ai/icons/data-migration.svg",
+        "icon_url": "https://cdn.solidai-sre.ai/icons/data-migration.svg",
         "detailed_description": """# Data Migration Assistant
 
 Plans and executes database migrations with validation and rollback procedures.
@@ -146,7 +146,7 @@ Plans and executes database migrations with validation and rollback procedures.
         """,
     },
     "06_news_comedian.json": {
-        "icon_url": "https://cdn.opensre.ai/icons/comedy.svg",
+        "icon_url": "https://cdn.solidai-sre.ai/icons/comedy.svg",
         "detailed_description": """# News Comedian (Non Production, Demo Only)
 
 Fun demo agent that turns tech news into witty jokes.
@@ -171,7 +171,7 @@ Fun demo agent that turns tech news into witty jokes.
         """,
     },
     "07_alert_fatigue.json": {
-        "icon_url": "https://cdn.opensre.ai/icons/alert-optimization.svg",
+        "icon_url": "https://cdn.solidai-sre.ai/icons/alert-optimization.svg",
         "detailed_description": """# Alert Fatigue Analyzer
 
 Data-driven alert optimization using multi-source analysis (PagerDuty, Prometheus, Datadog, Opsgenie).
@@ -197,7 +197,7 @@ Data-driven alert optimization using multi-source analysis (PagerDuty, Prometheu
         """,
     },
     "10_observability_advisor.json": {
-        "icon_url": "https://cdn.opensre.ai/icons/observability.svg",
+        "icon_url": "https://cdn.solidai-sre.ai/icons/observability.svg",
         "detailed_description": """# Observability Advisor
 
 Enterprise-grade observability setup and optimization using SRE best practices.

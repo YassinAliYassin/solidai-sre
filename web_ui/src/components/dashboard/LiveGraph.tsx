@@ -84,7 +84,7 @@ export function LiveGraph() {
       try {
         setBackendError(null);
         // Prefer admin endpoint (token decides access). Falls back to demo if unauthorized/unreachable.
-        const orgId = (typeof window !== 'undefined' && (window.localStorage.getItem('opensre_org_id') || 'org1')) || 'org1';
+        const orgId = (typeof window !== 'undefined' && (window.localStorage.getItem('solidai-sre_org_id') || 'org1')) || 'org1';
         const res = await apiFetch(`/api/admin/orgs/${orgId}/nodes`, { cache: 'no-store' });
         if (!res.ok) {
           const msg = await res.text();

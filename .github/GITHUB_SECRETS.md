@@ -108,14 +108,14 @@ This is automatically configured when running `./scripts/setup-prod.sh`, but can
 ```bash
 # Create or update secret in AWS Secrets Manager
 aws secretsmanager create-secret \
-  --name "opensre/prod/anthropic" \
+  --name "solidai-sre/prod/anthropic" \
   --description "Shared Anthropic API key for free tier and non-BYOK customers" \
   --secret-string "sk-ant-..." \
   --region us-west-2
 
 # Or update if it already exists:
 aws secretsmanager update-secret \
-  --secret-id "opensre/prod/anthropic" \
+  --secret-id "solidai-sre/prod/anthropic" \
   --secret-string "sk-ant-..." \
   --region us-west-2
 

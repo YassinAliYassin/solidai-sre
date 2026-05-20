@@ -1,4 +1,4 @@
-# OpenSRE - AI SRE Agent
+# SolidAI SRE - AI SRE Agent
 
 AI-powered SRE agent for automated incident investigation using LangGraph-based orchestration.
 

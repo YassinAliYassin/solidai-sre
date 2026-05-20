@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     // Also check for visitor-specific token
     if (!authHeaders.Authorization) {
-      const visitorToken = req.cookies.get("opensre_visitor_token")?.value;
+      const visitorToken = req.cookies.get("solidai-sre_visitor_token")?.value;
       if (visitorToken) {
         authHeaders = { Authorization: `Bearer ${visitorToken}` };
       }
@@ -44,16 +44,16 @@ export async function POST(req: NextRequest) {
 
     // Always clear cookies regardless of upstream response
     const response = NextResponse.json({ status: "ended" }, { status: 200 });
-    response.cookies.delete("opensre_session_token");
-    response.cookies.delete("opensre_visitor_token");
+    response.cookies.delete("solidai-sre_session_token");
+    response.cookies.delete("solidai-sre_visitor_token");
 
     return response;
   } catch (err: any) {
     console.error("Visitor end-session error:", err);
     // Still clear cookies even on error
     const response = NextResponse.json({ status: "ended" }, { status: 200 });
-    response.cookies.delete("opensre_session_token");
-    response.cookies.delete("opensre_visitor_token");
+    response.cookies.delete("solidai-sre_session_token");
+    response.cookies.delete("solidai-sre_visitor_token");
     return response;
   }
 }

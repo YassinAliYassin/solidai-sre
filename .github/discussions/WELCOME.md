@@ -1,4 +1,4 @@
-# 👋 Welcome to OpenSRE Discussions!
+# 👋 Welcome to SolidAI SRE Discussions!
 
 We're excited to have you here! This is our community space for:
 
@@ -6,19 +6,19 @@ We're excited to have you here! This is our community space for:
 
 - **Ask Questions** — Stuck on setup? Need help with integrations? We're here to help.
 - **Share Ideas** — Have a feature request or improvement? Start a discussion!
-- **Show & Tell** — Built something cool with OpenSRE? Share your setup, runbooks, or custom tools.
+- **Show & Tell** — Built something cool with SolidAI SRE? Share your setup, runbooks, or custom tools.
 - **Incident Stories** — Share war stories from the trenches (anonymized, of course).
 - **Best Practices** — Learn from others on how to set up alerts, runbooks, and workflows.
 
 ## 🚀 Get Started
 
-**New to OpenSRE?**
+**New to SolidAI SRE?**
 1. Check out the [Quick Start Guide](../README.md#quick-start)
-2. Join our [Slack community](https://join.slack.com/t/opensre/shared_invite/zt-3ojlxvs46-xuEJEplqBHPlymxtzQi8KQ)
+2. Join our [Slack community](https://join.slack.com/t/solidai-sre/shared_invite/zt-3ojlxvs46-xuEJEplqBHPlymxtzQi8KQ)
 3. Explore [example integrations](../docs/INTEGRATIONS.md)
 
 **Ready to contribute?**
-- Browse [good first issues](https://github.com/swapnildahiphale/OpenSRE/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+- Browse [good first issues](https://github.com/swapnildahiphale/SolidAI SRE/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 - Read our [Contributing Guide](../CONTRIBUTING.md)
 - Check out the [Development Guide](../DEVELOPMENT_KNOWLEDGE.md)
 
@@ -66,20 +66,20 @@ We're building a community focused on learning and collaboration. Please:
 ## 🔗 Quick Links
 
 - **Documentation**: [docs/](../docs/)
-- **Slack**: [Join our community](https://join.slack.com/t/opensre/shared_invite/zt-3ojlxvs46-xuEJEplqBHPlymxtzQi8KQ)
-- **Issues**: [Report bugs or request features](https://github.com/swapnildahiphale/OpenSRE/issues)
-- **Blog**: [opensre.in/blog](https://opensre.in/blog)
+- **Slack**: [Join our community](https://join.slack.com/t/solidai-sre/shared_invite/zt-3ojlxvs46-xuEJEplqBHPlymxtzQi8KQ)
+- **Issues**: [Report bugs or request features](https://github.com/swapnildahiphale/SolidAI SRE/issues)
+- **Blog**: [solidai-sre.in/blog](https://solidai-sre.in/blog)
 
-## 🦊 About OpenSRE
+## 🦊 About SolidAI SRE
 
-OpenSRE is an **AI-powered SRE** that helps teams investigate incidents, find root causes, and suggest fixes automatically. We integrate with your existing observability stack (Datadog, Grafana, Prometheus, etc.), infrastructure (Kubernetes, AWS, Azure, GCP), and collaboration tools (Slack, PagerDuty, GitHub).
+SolidAI SRE is an **AI-powered SRE** that helps teams investigate incidents, find root causes, and suggest fixes automatically. We integrate with your existing observability stack (Datadog, Grafana, Prometheus, etc.), infrastructure (Kubernetes, AWS, Azure, GCP), and collaboration tools (Slack, PagerDuty, GitHub).
 
 **Open source** (Apache 2.0) and **production-ready** — deploy anywhere, no restrictions.
 
 ---
 
 **Ready to dive in?** Start by introducing yourself below! Tell us:
-- What brings you to OpenSRE?
+- What brings you to SolidAI SRE?
 - What tools are you currently using for incident response?
 - What's your biggest pain point during on-call?
 

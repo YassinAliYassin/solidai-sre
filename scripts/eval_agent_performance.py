@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OpenSRE AI SRE Agent - Performance Evaluation
+SolidAI SRE AI SRE Agent - Performance Evaluation
 
 This script runs comprehensive evaluation scenarios against the agent
 using otel-demo fault injection and scores the results.
@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional
 
 # Configuration
 OTEL_NAMESPACE = "otel-demo"
-AGENT_NAMESPACE = "opensre"
+AGENT_NAMESPACE = "solidai-sre"
 AWS_REGION = "us-west-2"
 AGENT_URL = "http://localhost:8001"
 CONFIG_URL = "http://localhost:8081"
@@ -647,7 +647,7 @@ def run_scenario(scenario_name: str, scenario_config: Dict) -> EvalResult:
 def run_evaluation(scenarios_to_run: Optional[List[str]] = None):
     """Run full evaluation suite."""
     print("\n" + "=" * 70)
-    print("🌙 OpenSRE AI SRE Agent - Performance Evaluation")
+    print("🌙 SolidAI SRE AI SRE Agent - Performance Evaluation")
     print("=" * 70)
     print(f"Started: {datetime.now().isoformat()}")
     print("Target: ≥85 average score, <60s per scenario")
@@ -722,7 +722,7 @@ def run_evaluation(scenarios_to_run: Optional[List[str]] = None):
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="OpenSRE Agent Evaluation")
+    parser = argparse.ArgumentParser(description="SolidAI SRE Agent Evaluation")
     parser.add_argument("--scenarios", nargs="+", help="Specific scenarios to run")
     parser.add_argument("--tier", type=int, help="Run only scenarios from this tier")
     parser.add_argument(

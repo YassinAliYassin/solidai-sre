@@ -1,6 +1,6 @@
 # memory/integration.py
 """
-Integration layer for episodic memory with the OpenSRE agent system.
+Integration layer for episodic memory with the SolidAI SRE agent system.
 
 Stores episodes in PostgreSQL via config-service HTTP API.
 Provides memory-enhanced investigation planning and strategy generation.

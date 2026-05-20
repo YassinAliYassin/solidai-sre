@@ -1,10 +1,10 @@
-# Config Service Deployment for EKS (opensre-prod namespace)
+# Config Service Deployment for EKS (solidai-sre-prod namespace)
 # Multi-tenant configuration management with PostgreSQL backend
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: config-service
-  namespace: opensre-prod
+  namespace: solidai-sre-prod
   labels:
     app: config-service
     component: sre-agent
@@ -26,7 +26,7 @@ spec:
         fsGroup: 1000
       containers:
       - name: config-service
-        image: 103002841599.dkr.ecr.us-west-2.amazonaws.com/opensre-config-service:latest
+        image: 103002841599.dkr.ecr.us-west-2.amazonaws.com/solidai-sre-config-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
@@ -108,9 +108,9 @@ spec:
               name: config-service-secrets
               key: github-app-webhook-secret
         - name: GITHUB_APP_NAME
-          value: "opensre"
+          value: "solidai-sre"
         - name: GITHUB_SETUP_REDIRECT_URL
-          value: "https://ui.opensre.ai/integrations/github/setup"
+          value: "https://ui.solidai-sre.ai/integrations/github/setup"
         resources:
           requests:
             cpu: 50m
@@ -152,7 +152,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: config-service-svc
-  namespace: opensre-prod
+  namespace: solidai-sre-prod
   labels:
     app: config-service
 spec:
@@ -169,4 +169,4 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: config-service
-  namespace: opensre-prod
+  namespace: solidai-sre-prod

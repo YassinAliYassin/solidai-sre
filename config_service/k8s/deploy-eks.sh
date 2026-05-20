@@ -3,10 +3,10 @@
 # This script is idempotent - safe to run multiple times
 set -e
 
-NAMESPACE="opensre-prod"
+NAMESPACE="solidai-sre-prod"
 REGION="us-west-2"
 ECR_REGISTRY="103002841599.dkr.ecr.us-west-2.amazonaws.com"
-IMAGE_NAME="opensre-config-service"
+IMAGE_NAME="solidai-sre-config-service"
 
 echo "🚀 Deploying config-service to EKS"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -33,9 +33,9 @@ echo ""
 echo "3️⃣  Creating K8s secrets from AWS Secrets Manager..."
 
 # Get RDS credentials
-RDS_SECRET=$(aws secretsmanager get-secret-value --secret-id "opensre/prod/rds" --region $REGION --query 'SecretString' --output text 2>/dev/null || echo "{}")
+RDS_SECRET=$(aws secretsmanager get-secret-value --secret-id "solidai-sre/prod/rds" --region $REGION --query 'SecretString' --output text 2>/dev/null || echo "{}")
 if [ "$RDS_SECRET" == "{}" ]; then
-  echo "   ❌ ERROR: opensre/prod/rds secret not found in Secrets Manager"
+  echo "   ❌ ERROR: solidai-sre/prod/rds secret not found in Secrets Manager"
   echo "   Please create RDS first using: config_service/k8s/setup-rds.sh"
   exit 1
 fi
@@ -46,7 +46,7 @@ DB_USERNAME=$(echo $RDS_SECRET | jq -r '.username')
 DB_PASSWORD=$(echo $RDS_SECRET | jq -r '.password')
 
 # Get config-service secrets (token pepper, admin token, encryption key)
-CONFIG_SECRET=$(aws secretsmanager get-secret-value --secret-id "opensre/prod/config-service" --region $REGION --query 'SecretString' --output text 2>/dev/null || echo "{}")
+CONFIG_SECRET=$(aws secretsmanager get-secret-value --secret-id "solidai-sre/prod/config-service" --region $REGION --query 'SecretString' --output text 2>/dev/null || echo "{}")
 if [ "$CONFIG_SECRET" == "{}" ]; then
   echo "   ⚠️  Config service secrets not found, generating new ones..."
   TOKEN_PEPPER=$(openssl rand -base64 32)
@@ -54,7 +54,7 @@ if [ "$CONFIG_SECRET" == "{}" ]; then
   # Generate Fernet encryption key (32 bytes, base64-encoded = 44 chars)
   ENCRYPTION_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
   aws secretsmanager create-secret \
-    --name "opensre/prod/config-service" \
+    --name "solidai-sre/prod/config-service" \
     --description "Config service secrets (auth + column encryption)" \
     --secret-string "{\"token_pepper\":\"$TOKEN_PEPPER\",\"admin_token\":\"$ADMIN_TOKEN\",\"encryption_key\":\"$ENCRYPTION_KEY\"}" \
     --region $REGION > /dev/null
@@ -67,17 +67,17 @@ else
     echo "   ⚠️  Encryption key missing, generating and updating secret..."
     ENCRYPTION_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
     aws secretsmanager update-secret \
-      --secret-id "opensre/prod/config-service" \
+      --secret-id "solidai-sre/prod/config-service" \
       --secret-string "{\"token_pepper\":\"$TOKEN_PEPPER\",\"admin_token\":\"$ADMIN_TOKEN\",\"encryption_key\":\"$ENCRYPTION_KEY\"}" \
       --region $REGION > /dev/null
   fi
 fi
 
 # Get GitHub App secrets
-GITHUB_SECRET=$(aws secretsmanager get-secret-value --secret-id "opensre/prod/github-app" --region $REGION --query 'SecretString' --output text 2>/dev/null || echo "{}")
+GITHUB_SECRET=$(aws secretsmanager get-secret-value --secret-id "solidai-sre/prod/github-app" --region $REGION --query 'SecretString' --output text 2>/dev/null || echo "{}")
 if [ "$GITHUB_SECRET" == "{}" ]; then
   echo "   ⚠️  GitHub App secrets not found in Secrets Manager"
-  echo "   To add GitHub App integration, create secret: opensre/prod/github-app"
+  echo "   To add GitHub App integration, create secret: solidai-sre/prod/github-app"
   GITHUB_APP_ID=""
   GITHUB_APP_CLIENT_ID=""
   GITHUB_APP_CLIENT_SECRET=""

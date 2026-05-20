@@ -1,6 +1,6 @@
-# `web_ui/` — OpenSRE Web Console (Next.js) *(prototype; design is broader)*
+# `web_ui/` — SolidAI SRE Web Console (Next.js) *(prototype; design is broader)*
 
-This is the **governance + ops console** for OpenSRE. In the intended product design, it is the single place to view:
+This is the **governance + ops console** for SolidAI SRE. In the intended product design, it is the single place to view:
 - **Configs** (team/org effective config, overrides, audit history)
 - **AI pipeline proposals** (prompt/tool/config diffs) + **evaluation evidence**
 - **Knowledge base** (what’s indexed, retrieval traces/evidence, KB diffs/updates)
@@ -35,7 +35,7 @@ This keeps the browser from needing a direct network path to private services an
 
 Login is **token-to-cookie**:
 - `POST /api/session/login` with `{ "token": "<team token, admin token, or admin OIDC JWT>" }`
-- the server sets `opensre_session_token` as an **httpOnly cookie**
+- the server sets `solidai-sre_session_token` as an **httpOnly cookie**
 - API routes forward it upstream as `Authorization: Bearer <token>` if the client doesn’t provide an Authorization header
 
 The login route now **validates** the token/JWT against `config_service: GET /api/v1/auth/me` before setting the cookie.
@@ -46,7 +46,7 @@ Note: set `WEB_UI_COOKIE_SECURE=1` for real HTTPS deployments. For HTTP localhos
 
 If you enable OIDC env vars, the UI supports an **Authorization Code + PKCE** flow:
 - `GET /api/auth/login` → redirects to your IdP authorization endpoint
-- `GET /api/auth/callback` → exchanges `code` for tokens server-side, validates the resulting JWT via `config_service /api/v1/auth/me`, then sets `opensre_session_token`
+- `GET /api/auth/callback` → exchanges `code` for tokens server-side, validates the resulting JWT via `config_service /api/v1/auth/me`, then sets `solidai-sre_session_token`
 
 ## Configuration
 

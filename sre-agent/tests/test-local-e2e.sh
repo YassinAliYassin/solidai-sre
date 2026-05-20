@@ -4,7 +4,7 @@
 
 set -e
 
-echo "🧪 OpenSRE E2E Test Suite"
+echo "🧪 SolidAI SRE E2E Test Suite"
 echo "=============================="
 echo ""
 
@@ -21,7 +21,7 @@ if ! kubectl get runtimeclass gvisor &>/dev/null; then
     exit 1
 fi
 
-if ! kubectl get secret opensre-secrets &>/dev/null; then
+if ! kubectl get secret solidai-sre-secrets &>/dev/null; then
     echo "❌ Secrets not configured. Run: make k8s-secrets"
     exit 1
 fi
@@ -145,7 +145,7 @@ if kubectl get sandbox "$SANDBOX_NAME_2" &>/dev/null; then
     echo "✅ Test 3 PASSED - Second sandbox created for concurrent investigation"
     echo "   Sandbox 1: $SANDBOX_NAME"
     echo "   Sandbox 2: $SANDBOX_NAME_2"
-    kubectl get sandbox -l managed-by=opensre-server -o custom-columns=NAME:.metadata.name,RUNTIME:.spec.podTemplate.spec.runtimeClassName
+    kubectl get sandbox -l managed-by=solidai-sre-server -o custom-columns=NAME:.metadata.name,RUNTIME:.spec.podTemplate.spec.runtimeClassName
 else
     echo "❌ Test 3 FAILED - Second sandbox not found"
     [ -n "$PORT_FORWARD_PID" ] && kill $PORT_FORWARD_PID
@@ -158,7 +158,7 @@ sleep 2
 # Test 4: Verify gVisor runtime
 echo "Test 4: Verify gVisor Runtime"
 echo "------------------------------"
-SANDBOXES=$(kubectl get sandbox -o json | jq -r '.items[] | select(.metadata.labels["managed-by"]=="opensre-server") | "\(.metadata.name) \(.spec.podTemplate.spec.runtimeClassName)"')
+SANDBOXES=$(kubectl get sandbox -o json | jq -r '.items[] | select(.metadata.labels["managed-by"]=="solidai-sre-server") | "\(.metadata.name) \(.spec.podTemplate.spec.runtimeClassName)"')
 
 echo "Active sandboxes:"
 echo "$SANDBOXES"
@@ -177,7 +177,7 @@ echo "✅ All E2E Tests PASSED!"
 echo "================================"
 echo ""
 echo "Created sandboxes:"
-kubectl get sandbox -l managed-by=opensre-server -o custom-columns=NAME:.metadata.name,RUNTIME:.spec.podTemplate.spec.runtimeClassName,AGE:.metadata.creationTimestamp
+kubectl get sandbox -l managed-by=solidai-sre-server -o custom-columns=NAME:.metadata.name,RUNTIME:.spec.podTemplate.spec.runtimeClassName,AGE:.metadata.creationTimestamp
 
 echo ""
 echo "Cleanup:"

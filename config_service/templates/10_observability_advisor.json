@@ -1,5 +1,5 @@
 {
-  "$schema": "opensre-template-v1",
+  "$schema": "solidai-sre-template-v1",
   "$template_name": "Observability Advisor",
   "$template_slug": "observability-advisor",
   "$description": "Enterprise-grade observability setup and optimization agent. Helps organizations build data-driven alerting by analyzing historical metrics, computing baselines, and generating alert rules using SRE best practices (RED/USE/Golden Signals). Outputs Prometheus, Datadog, CloudWatch configurations or proposal documents for review.",

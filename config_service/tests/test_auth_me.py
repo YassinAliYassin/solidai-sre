@@ -116,7 +116,7 @@ def test_auth_me_team_oidc(monkeypatch):
     monkeypatch.setenv("TEAM_AUTH_MODE", "oidc")
     monkeypatch.setenv("OIDC_ENABLED", "1")
     monkeypatch.setenv("OIDC_ISSUER", "https://issuer.example")
-    monkeypatch.setenv("OIDC_AUDIENCE", "opensre-config-service")
+    monkeypatch.setenv("OIDC_AUDIENCE", "solidai-sre-config-service")
     monkeypatch.setenv("OIDC_JWKS_JSON", __import__("json").dumps(jwks))
     monkeypatch.setenv("OIDC_ORG_ID_CLAIM", "org_id")
     monkeypatch.setenv("OIDC_TEAM_NODE_ID_CLAIM", "team_node_id")
@@ -126,7 +126,7 @@ def test_auth_me_team_oidc(monkeypatch):
         {
             "sub": "user1",
             "iss": "https://issuer.example",
-            "aud": "opensre-config-service",
+            "aud": "solidai-sre-config-service",
             "org_id": "org1",
             "team_node_id": "teamA",
             "exp": int(time.time()) + 3600,

@@ -356,7 +356,7 @@ class TestHelmTemplate:
     def _render(self, set_values: list[str]) -> str:
         import subprocess
 
-        chart_path = str(Path(__file__).parent.parent.parent / "charts" / "opensre")
+        chart_path = str(Path(__file__).parent.parent.parent / "charts" / "solidai-sre")
         cmd = [
             "helm",
             "template",

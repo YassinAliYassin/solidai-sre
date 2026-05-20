@@ -1,7 +1,7 @@
-# OpenSRE Local Development Configuration
+# SolidAI SRE Local Development Configuration
 #
 # This file is used in local development mode (CONFIG_MODE=local).
-# It provides a declarative way to configure your local OpenSRE instance.
+# It provides a declarative way to configure your local SolidAI SRE instance.
 #
 # Secrets: Use ${ENV_VAR} syntax to reference environment variables from .env
 # Example: api_key: ${CORALOGIX_API_KEY}
@@ -88,7 +88,7 @@ integrations:
   coralogix:
     api_key: ${CORALOGIX_API_KEY}
     region: us2  # us1, us2, eu1, eu2, ap1, ap2
-    application_name: opensre-local
+    application_name: solidai-sre-local
     subsystem_name: sre-agent
 
   # Anthropic - API key for Anthropic models (claude-*)
@@ -200,7 +200,7 @@ prompts:
   # System prompt for the SRE agent
   # Uncomment to customize:
   # system_prompt: |
-  #   You are OpenSRE, an expert SRE assistant...
+  #   You are SolidAI SRE, an expert SRE assistant...
 
   # Incident investigation prompt
   # Uncomment to customize:

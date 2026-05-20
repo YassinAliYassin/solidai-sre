@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# OpenSRE Quick Health Check
+# SolidAI SRE Quick Health Check
 # 
 # Fast validation of deployment health without secrets
 # Useful for quick verification after deployments
@@ -11,8 +11,8 @@
 #
 
 VERBOSE=${1:-""}
-NAMESPACE=${NAMESPACE:-opensre}
-WEB_UI_URL=${WEB_UI_URL:-https://ui.opensre.ai}
+NAMESPACE=${NAMESPACE:-solidai-sre}
+WEB_UI_URL=${WEB_UI_URL:-https://ui.solidai-sre.ai}
 
 # Colors
 RED='\033[0;31m'
@@ -51,7 +51,7 @@ check_pods() {
     
     echo -n "Pod: $name... "
     
-    STATUS=$(kubectl get pods -n $NAMESPACE -l app=opensre-$name -o jsonpath='{.items[0].status.phase}' 2>/dev/null)
+    STATUS=$(kubectl get pods -n $NAMESPACE -l app=solidai-sre-$name -o jsonpath='{.items[0].status.phase}' 2>/dev/null)
     
     if [[ "$STATUS" == "Running" ]]; then
         echo -e "${GREEN}✅ Running${NC}"
@@ -60,14 +60,14 @@ check_pods() {
         echo -e "${RED}❌ $STATUS${NC}"
         ((FAILED++))
         if [[ "$VERBOSE" == "--verbose" ]]; then
-            kubectl get pods -n $NAMESPACE -l app=opensre-$name 2>&1 | sed 's/^/  /'
+            kubectl get pods -n $NAMESPACE -l app=solidai-sre-$name 2>&1 | sed 's/^/  /'
         fi
     fi
 }
 
 echo -e "${BLUE}"
 echo "╔════════════════════════════════════════════╗"
-echo "║     OpenSRE Health Check              ║"
+echo "║     SolidAI SRE Health Check              ║"
 echo "╚════════════════════════════════════════════╝"
 echo -e "${NC}"
 
@@ -82,14 +82,14 @@ check_pods "orchestrator"
 check_pods "web-ui"
 
 echo -e "\n${YELLOW}── Services ──${NC}"
-check "agent service" "kubectl get svc opensre-agent -n $NAMESPACE"
-check "config-service service" "kubectl get svc opensre-config-service -n $NAMESPACE"
-check "orchestrator service" "kubectl get svc opensre-orchestrator -n $NAMESPACE"
-check "web-ui service" "kubectl get svc opensre-web-ui -n $NAMESPACE"
+check "agent service" "kubectl get svc solidai-sre-agent -n $NAMESPACE"
+check "config-service service" "kubectl get svc solidai-sre-config-service -n $NAMESPACE"
+check "orchestrator service" "kubectl get svc solidai-sre-orchestrator -n $NAMESPACE"
+check "web-ui service" "kubectl get svc solidai-sre-web-ui -n $NAMESPACE"
 
 echo -e "\n${YELLOW}── Ingress ──${NC}"
-check "ingress exists" "kubectl get ingress opensre-web-ui -n $NAMESPACE"
-ALB_ADDR=$(kubectl get ingress opensre-web-ui -n $NAMESPACE -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
+check "ingress exists" "kubectl get ingress solidai-sre-web-ui -n $NAMESPACE"
+ALB_ADDR=$(kubectl get ingress solidai-sre-web-ui -n $NAMESPACE -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
 if [[ -n "$ALB_ADDR" ]]; then
     echo -e "  ALB: ${GREEN}$ALB_ADDR${NC}"
 else
@@ -103,7 +103,7 @@ echo -e "  Secrets count: $SECRET_COUNT"
 
 echo -e "\n${YELLOW}── HTTPS Endpoints ──${NC}"
 check "Web UI health" "curl -sf $WEB_UI_URL/api/health"
-check "DNS resolves" "nslookup ui.opensre.ai"
+check "DNS resolves" "nslookup ui.solidai-sre.ai"
 
 echo -e "\n${YELLOW}── otel-demo (for testing) ──${NC}"
 if kubectl get ns otel-demo > /dev/null 2>&1; then

@@ -4,7 +4,7 @@
 set -e
 
 REGION="us-west-2"
-SECRET_NAME="opensre/prod/github-app"
+SECRET_NAME="solidai-sre/prod/github-app"
 
 echo "🔐 Setting up GitHub App secrets in AWS Secrets Manager"
 echo "======================================================="
@@ -58,7 +58,7 @@ else
   echo "   Creating new secret..."
   aws secretsmanager create-secret \
     --name "$SECRET_NAME" \
-    --description "GitHub App credentials for OpenSRE" \
+    --description "GitHub App credentials for SolidAI SRE" \
     --secret-string "$SECRET_JSON" \
     --region $REGION > /dev/null
 fi
@@ -75,7 +75,7 @@ echo "1. Run the deploy workflow to pick up the new secrets:"
 echo "   gh workflow run deploy-config-service-prod.yml"
 echo ""
 echo "2. Configure your GitHub App with these URLs:"
-echo "   Callback URL: https://ui.opensre.ai/github/callback"
-echo "   Setup URL:    https://ui.opensre.ai/integrations/github/setup"
-echo "   Webhook URL:  https://ui.opensre.ai/webhooks/github"
+echo "   Callback URL: https://ui.solidai-sre.ai/github/callback"
+echo "   Setup URL:    https://ui.solidai-sre.ai/integrations/github/setup"
+echo "   Webhook URL:  https://ui.solidai-sre.ai/webhooks/github"
 echo ""

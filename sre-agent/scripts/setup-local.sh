@@ -20,17 +20,17 @@ echo "✅ Prerequisites OK"
 echo ""
 
 # Check if cluster already exists
-if kind get clusters 2>/dev/null | grep -q "^opensre$"; then
-    echo "⚠️  Kind cluster 'opensre' already exists!"
+if kind get clusters 2>/dev/null | grep -q "^solidai-sre$"; then
+    echo "⚠️  Kind cluster 'solidai-sre' already exists!"
     echo ""
     read -p "Delete and recreate? (y/N) " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo "🗑️  Deleting existing cluster..."
-        kind delete cluster --name opensre
+        kind delete cluster --name solidai-sre
     else
         echo "Cancelled. Using existing cluster."
-        kubectl config use-context kind-opensre
+        kubectl config use-context kind-solidai-sre
         echo ""
         echo "⏩ Skipping to component setup..."
         echo ""
@@ -68,7 +68,7 @@ cd - >/dev/null
 
 # Load into Kind
 echo "Loading into Kind..."
-kind load docker-image sandbox-router:local --name opensre
+kind load docker-image sandbox-router:local --name solidai-sre
 
 # Deploy router
 kubectl apply -f k8s/sandbox_router.yaml
@@ -140,7 +140,7 @@ else
     echo "  ✓ LLM provider: Claude SDK with credential-proxy for multi-LLM routing"
 fi
 
-kubectl create secret generic opensre-secrets \
+kubectl create secret generic solidai-sre-secrets \
     --from-literal=anthropic-api-key="${ANTHROPIC_API_KEY}" \
     --from-literal=laminar-api-key="${LMNR_PROJECT_API_KEY:-}" \
     --from-literal=coralogix-api-key="${CORALOGIX_API_KEY:-}" \
@@ -174,8 +174,8 @@ kubectl create secret generic opensre-secrets \
     --from-literal=aws-secret-access-key="${AWS_SECRET_ACCESS_KEY:-}" \
     --from-literal=aws-region="${AWS_REGION:-us-west-2}" \
     --from-literal=database-url="${DATABASE_URL:-}" \
-    --from-literal=history-db-path="${HISTORY_DB_PATH:-~/.opensre/history.db}" \
-    --from-literal=remediation-log-path="${REMEDIATION_LOG_PATH:-~/.opensre/logs/remediation.log}" \
+    --from-literal=history-db-path="${HISTORY_DB_PATH:-~/.solidai-sre/history.db}" \
+    --from-literal=remediation-log-path="${REMEDIATION_LOG_PATH:-~/.solidai-sre/logs/remediation.log}" \
     --from-literal=gemini-api-key="${GEMINI_API_KEY:-}" \
     --from-literal=openai-api-key="${OPENAI_API_KEY:-}" \
     --dry-run=client -o yaml | kubectl apply -f - >/dev/null
@@ -187,13 +187,13 @@ echo ""
 echo "5️⃣  Deploying credential proxy..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# Create opensre-prod namespace (where credential-resolver runs)
-kubectl create namespace opensre-prod 2>/dev/null || true
+# Create solidai-sre-prod namespace (where credential-resolver runs)
+kubectl create namespace solidai-sre-prod 2>/dev/null || true
 
-# Copy secrets to opensre-prod namespace (credential-resolver needs them)
-kubectl delete secret opensre-secrets -n opensre-prod 2>/dev/null || true
-kubectl get secret opensre-secrets -n default -o json | \
-    jq '.metadata.namespace = "opensre-prod" | del(.metadata.resourceVersion, .metadata.uid, .metadata.creationTimestamp)' | \
+# Copy secrets to solidai-sre-prod namespace (credential-resolver needs them)
+kubectl delete secret solidai-sre-secrets -n solidai-sre-prod 2>/dev/null || true
+kubectl get secret solidai-sre-secrets -n default -o json | \
+    jq '.metadata.namespace = "solidai-sre-prod" | del(.metadata.resourceVersion, .metadata.uid, .metadata.creationTimestamp)' | \
     kubectl create -f - >/dev/null 2>&1 || true
 
 # Build credential-resolver image
@@ -202,7 +202,7 @@ docker build -q -t credential-resolver:local ./credential-proxy
 
 # Load into Kind
 echo "Loading credential-resolver into Kind..."
-kind load docker-image credential-resolver:local --name opensre
+kind load docker-image credential-resolver:local --name solidai-sre
 
 # Deploy credential-resolver
 echo "Deploying credential-resolver..."
@@ -210,7 +210,7 @@ kubectl apply -f credential-proxy/k8s/deployment-local.yaml
 kubectl apply -f credential-proxy/k8s/service-local.yaml
 
 # Wait for credential-resolver to be ready
-kubectl rollout status deployment/credential-resolver -n opensre-prod --timeout=60s
+kubectl rollout status deployment/credential-resolver -n solidai-sre-prod --timeout=60s
 
 # Deploy envoy config ConfigMap (in default namespace where sandboxes run)
 echo "Deploying envoy proxy config..."
@@ -233,7 +233,7 @@ echo "║          ✅ Local Development Setup Complete!                  ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
 echo ""
 echo "📊 What was installed:"
-echo "  ✅ Kind cluster (opensre)"
+echo "  ✅ Kind cluster (solidai-sre)"
 echo "  ✅ agent-sandbox controller"
 echo "  ✅ Sandbox Router"
 echo "  ✅ Service patcher"

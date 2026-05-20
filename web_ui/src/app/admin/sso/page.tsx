@@ -374,7 +374,7 @@ export default function SSOSettingsPage() {
             type="text"
             value={adminGroup}
             onChange={(e) => setAdminGroup(e.target.value)}
-            placeholder="e.g., opensre-admins"
+            placeholder="e.g., solidai-sre-admins"
             className="w-full px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-600 bg-white dark:bg-stone-700 text-stone-900 dark:text-white"
           />
           <p className="text-xs text-stone-500 mt-1">

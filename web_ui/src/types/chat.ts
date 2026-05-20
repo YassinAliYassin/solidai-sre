@@ -14,7 +14,7 @@ export type ChatMessage = {
     type: 'alert' | 'agent_thought' | 'tool_step' | 'user_message' | 'conclusion';
     // Allow known senders but also support arbitrary agent/team names (e.g. "Payment Bot")
     // without breaking production builds.
-    sender: 'OpenSRE' | 'PagerDuty' | 'User' | 'System' | (string & {});
+    sender: 'SolidAI SRE' | 'PagerDuty' | 'User' | 'System' | (string & {});
     timestamp: string;
     content?: string; // Markdown text
     toolCall?: ToolCall; // If type is tool_step

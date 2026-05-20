@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
     // Also check for visitor-specific token (for queued users)
     if (!authHeaders.Authorization) {
-      const visitorToken = req.cookies.get("opensre_visitor_token")?.value;
+      const visitorToken = req.cookies.get("solidai-sre_visitor_token")?.value;
       if (visitorToken) {
         authHeaders = { Authorization: `Bearer ${visitorToken}` };
       }
@@ -63,12 +63,12 @@ export async function POST(req: NextRequest) {
     // If user was promoted from queue to active, update the main session cookie
     if (data.status === "active") {
       // The visitor token cookie can now be used as the session token
-      const visitorToken = req.cookies.get("opensre_visitor_token")?.value;
-      const sessionToken = req.cookies.get("opensre_session_token")?.value;
+      const visitorToken = req.cookies.get("solidai-sre_visitor_token")?.value;
+      const sessionToken = req.cookies.get("solidai-sre_session_token")?.value;
 
       // If they have a visitor token but no session token, promote it
       if (visitorToken && !sessionToken) {
-        response.cookies.set("opensre_session_token", visitorToken, {
+        response.cookies.set("solidai-sre_session_token", visitorToken, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
           sameSite: "lax",
@@ -80,8 +80,8 @@ export async function POST(req: NextRequest) {
 
     // If session expired, clear cookies
     if (data.status === "expired") {
-      response.cookies.delete("opensre_session_token");
-      response.cookies.delete("opensre_visitor_token");
+      response.cookies.delete("solidai-sre_session_token");
+      response.cookies.delete("solidai-sre_visitor_token");
     }
 
     return response;

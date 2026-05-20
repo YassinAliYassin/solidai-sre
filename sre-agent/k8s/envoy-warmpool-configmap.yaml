@@ -8,7 +8,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: envoy-warmpool-config
-  namespace: opensre-prod
+  namespace: solidai-sre-prod
   labels:
     app: sre-agent
     component: envoy-warmpool
@@ -149,7 +149,7 @@ data:
                   transport_api_version: V3
                   http_service:
                     server_uri:
-                      uri: http://credential-resolver-svc.opensre-prod.svc.cluster.local:8002/check
+                      uri: http://credential-resolver-svc.solidai-sre-prod.svc.cluster.local:8002/check
                       cluster: ext_authz
                       timeout: 2s
                     # Prepend /extauthz to avoid hitting LLM proxy routes
@@ -191,7 +191,7 @@ data:
             - endpoint:
                 address:
                   socket_address:
-                    address: credential-resolver-svc.opensre-prod.svc.cluster.local
+                    address: credential-resolver-svc.solidai-sre-prod.svc.cluster.local
                     port_value: 8002
 
       # LLM proxy - credential-resolver handles translation + routing
@@ -205,7 +205,7 @@ data:
             - endpoint:
                 address:
                   socket_address:
-                    address: credential-resolver-svc.opensre-prod.svc.cluster.local
+                    address: credential-resolver-svc.solidai-sre-prod.svc.cluster.local
                     port_value: 8002
 
       # Anthropic API (kept for direct API calls from credential-resolver's pass-through)

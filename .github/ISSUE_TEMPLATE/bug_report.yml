@@ -28,7 +28,7 @@ body:
         (Docker Compose / Kubernetes / Managed / Slack / Other)
 
         ## Environment
-        - OpenSRE version:
+        - SolidAI SRE version:
         - Python version:
         - OS:
         - Integrations:

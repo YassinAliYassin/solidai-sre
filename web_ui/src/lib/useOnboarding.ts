@@ -33,7 +33,7 @@ const DEFAULT_STATE: OnboardingState = {
   step4Progress: DEFAULT_STEP4_PROGRESS,
 };
 
-const LOCALSTORAGE_KEY = 'opensre_onboarding';
+const LOCALSTORAGE_KEY = 'solidai-sre_onboarding';
 
 /** Read onboarding state from localStorage, returning DEFAULT_STATE on missing/corrupt data. */
 function readLocalStorage(): OnboardingState {

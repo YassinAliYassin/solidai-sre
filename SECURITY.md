@@ -10,7 +10,7 @@ We release security updates for the following versions:
 | Latest release | :white_check_mark: |
 | Older releases | :x: |
 
-We strongly recommend running the latest version of OpenSRE.
+We strongly recommend running the latest version of SolidAI SRE.
 
 ## Reporting a Vulnerability
 
@@ -22,13 +22,13 @@ Instead, please report them via one of these methods:
 
 Report security vulnerabilities privately through GitHub:
 
-1. Go to the [Security tab](https://github.com/swapnildahiphale/OpenSRE/security)
+1. Go to the [Security tab](https://github.com/swapnildahiphale/SolidAI SRE/security)
 2. Click "Report a vulnerability"
 3. Fill out the advisory form with details
 
 ### 2. Email
 
-Send details to **swapnil@opensre.in** with:
+Send details to **swapnil@solidai-sre.in** with:
 
 - Type of vulnerability (RCE, injection, XSS, etc.)
 - Affected component(s)
@@ -51,7 +51,7 @@ We follow responsible disclosure practices and will credit reporters (unless you
 
 Security issues in:
 
-- **OpenSRE core** (agent, orchestrator, config-service)
+- **SolidAI SRE core** (agent, orchestrator, config-service)
 - **Web console** (authentication, authorization, XSS, CSRF)
 - **API endpoints** (injection, authentication bypass)
 - **Slack bot** (command injection, unauthorized access)
@@ -72,7 +72,7 @@ Security issues in:
 
 ## Security Best Practices
 
-When deploying OpenSRE:
+When deploying SolidAI SRE:
 
 ### Secrets Management
 
@@ -105,7 +105,7 @@ When deploying OpenSRE:
 ### Updates & Monitoring
 
 - Subscribe to security announcements (watch this repo)
-- Update OpenSRE regularly
+- Update SolidAI SRE regularly
 - Monitor dependency vulnerabilities (Dependabot enabled)
 - Review audit logs for suspicious activity
 
@@ -113,7 +113,7 @@ When deploying OpenSRE:
 
 ### Agent Tool Execution
 
-OpenSRE agents execute commands against your infrastructure (kubectl, AWS CLI, etc.). This is by design for incident response.
+SolidAI SRE agents execute commands against your infrastructure (kubectl, AWS CLI, etc.). This is by design for incident response.
 
 **Mitigations:**
 - Tools run in isolated sandboxes
@@ -123,7 +123,7 @@ OpenSRE agents execute commands against your infrastructure (kubectl, AWS CLI, e
 
 ### LLM Prompt Injection
 
-Like all LLM-powered tools, OpenSRE may be susceptible to prompt injection attacks.
+Like all LLM-powered tools, SolidAI SRE may be susceptible to prompt injection attacks.
 
 **Mitigations:**
 - Input validation and sanitization
@@ -143,7 +143,7 @@ Agents may access sensitive data (logs, metrics, code).
 
 ## Security Features
 
-OpenSRE includes security features for production:
+SolidAI SRE includes security features for production:
 
 - **SOC 2 compliant** infrastructure (managed deployments)
 - **End-to-end encryption** for data in transit
@@ -173,7 +173,7 @@ We credit security researchers in:
 
 ## Security Hall of Fame
 
-We recognize security researchers who help keep OpenSRE secure:
+We recognize security researchers who help keep SolidAI SRE secure:
 
 <!-- This section will be updated as we receive security reports -->
 
@@ -181,9 +181,9 @@ We recognize security researchers who help keep OpenSRE secure:
 
 ## Contact
 
-- **Security issues**: swapnil@opensre.in
-- **General questions**: swapnil@opensre.in
-- **Community**: [Slack](https://join.slack.com/t/opensre/shared_invite/zt-3ojlxvs46-xuEJEplqBHPlymxtzQi8KQ) | [Discussions](https://github.com/swapnildahiphale/OpenSRE/discussions)
+- **Security issues**: swapnil@solidai-sre.in
+- **General questions**: swapnil@solidai-sre.in
+- **Community**: [Slack](https://join.slack.com/t/solidai-sre/shared_invite/zt-3ojlxvs46-xuEJEplqBHPlymxtzQi8KQ) | [Discussions](https://github.com/swapnildahiphale/SolidAI SRE/discussions)
 
 ## Learn More
 

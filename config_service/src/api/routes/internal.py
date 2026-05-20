@@ -2382,7 +2382,7 @@ class GitHubInstallationResponse(BaseModel):
 
 
 class GitHubInstallationLinkRequest(BaseModel):
-    """Request to link a GitHub installation to an OpenSRE org/team."""
+    """Request to link a GitHub installation to an SolidAI SRE org/team."""
 
     org_id: str
     team_node_id: str
@@ -2532,7 +2532,7 @@ def find_github_installation(
     1. installation_id (exact match)
     2. repo (searches in repositories array)
     3. account_login (exact match)
-    4. org_id + team_node_id (OpenSRE linkage)
+    4. org_id + team_node_id (SolidAI SRE linkage)
 
     Returns None (null) if not found.
     """
@@ -2615,7 +2615,7 @@ def link_github_installation(
     service: str = Depends(require_internal_service),
 ):
     """
-    Link a GitHub installation to an OpenSRE org/team.
+    Link a GitHub installation to an SolidAI SRE org/team.
 
     Called during the setup flow after a user installs the GitHub App.
     """
@@ -2676,7 +2676,7 @@ def link_github_installation_by_account(
     service: str = Depends(require_internal_service),
 ):
     """
-    Link a GitHub installation to an OpenSRE org/team by account login.
+    Link a GitHub installation to an SolidAI SRE org/team by account login.
 
     This endpoint is used when a user enters their GitHub org name in the Slack
     modal to complete the GitHub App linking flow.
@@ -2720,7 +2720,7 @@ def link_github_installation_by_account(
         raise HTTPException(
             status_code=404,
             detail=f"No GitHub installation found for '{request.account_login}'. "
-            "Please make sure you have installed the OpenSRE GitHub App on this org/user.",
+            "Please make sure you have installed the SolidAI SRE GitHub App on this org/user.",
         )
 
     # Check if already linked to a different org
@@ -2734,7 +2734,7 @@ def link_github_installation_by_account(
         raise HTTPException(
             status_code=409,
             detail="This GitHub installation is already linked to another workspace. "
-            "Each GitHub org can only be linked to one OpenSRE workspace.",
+            "Each GitHub org can only be linked to one SolidAI SRE workspace.",
         )
 
     # Check if already linked to this org (idempotent success)

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ─────────────────────────────────────────────────────────────────
-# OpenSRE E2E Entrypoint
+# SolidAI SRE E2E Entrypoint
 # Starts kubectl port-forward tunnels for observability tools,
 # monitors them with a background watchdog, then execs the server.
 # ─────────────────────────────────────────────────────────────────

@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for suggesting a new feature! Before creating this issue, please check if a similar idea exists in [Discussions](https://github.com/swapnildahiphale/OpenSRE/discussions).
+        Thanks for suggesting a new feature! Before creating this issue, please check if a similar idea exists in [Discussions](https://github.com/swapnildahiphale/SolidAI SRE/discussions).
 
   - type: textarea
     id: problem
@@ -39,7 +39,7 @@ body:
     id: area
     attributes:
       label: Feature area
-      description: Which part of OpenSRE does this relate to?
+      description: Which part of SolidAI SRE does this relate to?
       options:
         - Agent / AI capabilities
         - Integrations (observability, cloud, etc.)
@@ -78,5 +78,5 @@ body:
       options:
         - label: I have searched existing issues and discussions to avoid duplicates
           required: true
-        - label: This feature aligns with OpenSRE's mission (AI-powered incident response)
+        - label: This feature aligns with SolidAI SRE's mission (AI-powered incident response)
           required: true

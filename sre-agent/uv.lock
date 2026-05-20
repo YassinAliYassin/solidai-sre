@@ -1418,7 +1418,7 @@ wheels = [
 ]
 
 [[package]]
-name = "opensre-sre-agent"
+name = "solidai-sre-sre-agent"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

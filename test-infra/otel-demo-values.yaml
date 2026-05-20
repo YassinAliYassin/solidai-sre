@@ -1,4 +1,4 @@
-# OpenSRE E2E Test — otel-demo overrides for kind cluster
+# SolidAI SRE E2E Test — otel-demo overrides for kind cluster
 # Exposes services via NodePort for host access
 # Memory limits tuned for single-node kind cluster stability
 #

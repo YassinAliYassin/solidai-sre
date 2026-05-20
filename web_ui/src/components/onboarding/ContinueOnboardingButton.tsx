@@ -36,7 +36,7 @@ export function ContinueOnboardingButton({ onContinue, isVisitor = false }: Cont
   // Check localStorage for state - runs on mount AND on navigation
   useEffect(() => {
     try {
-      const cached = localStorage.getItem('opensre_onboarding');
+      const cached = localStorage.getItem('solidai-sre_onboarding');
       if (cached) {
         const data = JSON.parse(cached);
         const step = data.quickStartStep ?? null;
@@ -60,7 +60,7 @@ export function ContinueOnboardingButton({ onContinue, isVisitor = false }: Cont
   useEffect(() => {
     const checkLocalStorage = () => {
       try {
-        const cached = localStorage.getItem('opensre_onboarding');
+        const cached = localStorage.getItem('solidai-sre_onboarding');
         if (cached) {
           const data = JSON.parse(cached);
           const newStep = data.quickStartStep ?? null;

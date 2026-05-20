@@ -76,7 +76,7 @@ knowledge_base/trees/mega_ultra_v2/keywords.json
 test-infra/kubeconfig-docker.yaml
 test-infra/kind/kubeconfig-docker.yaml
 test-infra/eks/kubeconfig-eks.yaml
-.credentials-opensre-launch.md
+.credentials-solidai-sre-launch.md
 .vercel
 
 # Tool artifacts
@@ -86,4 +86,4 @@ test-infra/eks/kubeconfig-eks.yaml
 
 # Large video/media files
 video-analysis-frames/
-OpenSRE*.mp4
+SolidAI SRE*.mp4

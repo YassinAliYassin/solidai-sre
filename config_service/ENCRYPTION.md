@@ -54,14 +54,14 @@ Encryption key is stored in AWS Secrets Manager:
 ```bash
 # View current key
 aws secretsmanager get-secret-value \
-  --secret-id "opensre/prod/config-service" \
+  --secret-id "solidai-sre/prod/config-service" \
   --region us-west-2 \
   --query 'SecretString' | jq -r '. | fromjson | .encryption_key'
 
 # Rotate key (WARNING: requires data migration)
 python scripts/generate-encryption-key.py
 aws secretsmanager update-secret \
-  --secret-id "opensre/prod/config-service" \
+  --secret-id "solidai-sre/prod/config-service" \
   --secret-string '{"token_pepper":"...","admin_token":"...","encryption_key":"NEW_KEY"}' \
   --region us-west-2
 ```

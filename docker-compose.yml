@@ -30,13 +30,13 @@ services:
     environment:
       POSTGRES_USER: solidai
       POSTGRES_PASSWORD: localdev
-      POSTGRES_DB: opensre
+      POSTGRES_DB: solidai-sre
     ports:
       - "5433:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U opensre -d opensre"]
+      test: ["CMD-SHELL", "pg_isready -U solidai-sre -d solidai-sre"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -50,13 +50,13 @@ services:
     build:
       context: ./config_service
       dockerfile: Dockerfile
-    container_name: opensre-config-service
+    container_name: solidai-sre-config-service
     restart: unless-stopped
     entrypoint: ["/bin/bash", "/app/scripts/entrypoint-local.sh"]
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+psycopg2://opensre:localdev@postgres:5432/opensre?sslmode=disable
+      DATABASE_URL: postgresql+psycopg2://solidai-sre:localdev@postgres:5432/solidai-sre?sslmode=disable
       TOKEN_PEPPER: ${TOKEN_PEPPER:-localdev-pepper-must-be-32-chars-minimum!!}
       ADMIN_TOKEN: ${ADMIN_TOKEN:-local-admin-token}
       ADMIN_AUTH_MODE: token
@@ -90,7 +90,7 @@ services:
   # ─────────────────────────────────────────────────────────────────────────────
   neo4j:
     image: neo4j:5-community
-    container_name: opensre-neo4j
+    container_name: solidai-sre-neo4j
     restart: unless-stopped
     ports:
       - "7475:7474"
@@ -114,7 +114,7 @@ services:
   # ─────────────────────────────────────────────────────────────────────────────
   litellm:
     image: ghcr.io/berriai/litellm:main-latest
-    container_name: opensre-litellm
+    container_name: solidai-sre-litellm
     restart: unless-stopped
     environment:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
@@ -141,7 +141,7 @@ services:
     build:
       context: ./sre-agent
       dockerfile: Dockerfile
-    container_name: opensre-sre-agent
+    container_name: solidai-sre-sre-agent
     restart: unless-stopped
     env_file:
       - .env
@@ -215,7 +215,7 @@ services:
     build:
       context: ./web_ui
       dockerfile: Dockerfile
-    container_name: opensre-web-ui
+    container_name: solidai-sre-web-ui
     restart: unless-stopped
     environment:
       - CONFIG_SERVICE_URL=http://config-service:8080
@@ -247,7 +247,7 @@ services:
     build:
       context: ./slack-bot
       dockerfile: Dockerfile
-    container_name: opensre-slack-bot
+    container_name: solidai-sre-slack-bot
     restart: unless-stopped
     env_file:
       - .env
@@ -288,6 +288,6 @@ networks:
 
 volumes:
   postgres-data:
-    name: opensre-postgres-data
+    name: solidai-sre-postgres-data
   neo4j-data:
-    name: opensre-neo4j-data
+    name: solidai-sre-neo4j-data

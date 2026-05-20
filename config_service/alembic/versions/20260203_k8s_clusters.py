@@ -1,7 +1,7 @@
 """Add k8s_clusters table for SaaS K8s integration.
 
 Tracks customer K8s clusters that connect via the in-cluster agent pattern.
-Customers deploy an agent that connects outbound to the OpenSRE gateway.
+Customers deploy an agent that connects outbound to the SolidAI SRE gateway.
 
 Revision ID: 20260203_k8s_clusters
 Revises: 20260131_slack_oauth_storage

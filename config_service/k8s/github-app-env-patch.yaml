@@ -1,5 +1,5 @@
 # Patch to add GitHub App environment variables to config-service deployment
-# Apply with: kubectl patch deployment opensre-config-service -n opensre --patch-file github-app-env-patch.yaml
+# Apply with: kubectl patch deployment solidai-sre-config-service -n solidai-sre --patch-file github-app-env-patch.yaml
 spec:
   template:
     spec:
@@ -10,32 +10,32 @@ spec:
         - name: GITHUB_APP_ID
           valueFrom:
             secretKeyRef:
-              name: opensre-config-service
+              name: solidai-sre-config-service
               key: GITHUB_APP_ID
         - name: GITHUB_APP_CLIENT_ID
           valueFrom:
             secretKeyRef:
-              name: opensre-config-service
+              name: solidai-sre-config-service
               key: GITHUB_APP_CLIENT_ID
         - name: GITHUB_APP_CLIENT_SECRET
           valueFrom:
             secretKeyRef:
-              name: opensre-config-service
+              name: solidai-sre-config-service
               key: GITHUB_APP_CLIENT_SECRET
         - name: GITHUB_APP_PRIVATE_KEY
           valueFrom:
             secretKeyRef:
-              name: opensre-config-service
+              name: solidai-sre-config-service
               key: GITHUB_APP_PRIVATE_KEY
         - name: GITHUB_APP_WEBHOOK_SECRET
           valueFrom:
             secretKeyRef:
-              name: opensre-config-service
+              name: solidai-sre-config-service
               key: GITHUB_APP_WEBHOOK_SECRET
         - name: GITHUB_APP_NAME
           valueFrom:
             secretKeyRef:
-              name: opensre-config-service
+              name: solidai-sre-config-service
               key: GITHUB_APP_NAME
         - name: GITHUB_SETUP_REDIRECT_URL
-          value: "https://ui.opensre.ai/integrations/github/setup"
+          value: "https://ui.solidai-sre.ai/integrations/github/setup"

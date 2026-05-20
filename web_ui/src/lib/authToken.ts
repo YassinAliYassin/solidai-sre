@@ -1,4 +1,4 @@
-const TOKEN_KEY = "opensre_token";
+const TOKEN_KEY = "solidai-sre_token";
 
 export function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;

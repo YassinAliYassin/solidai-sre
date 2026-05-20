@@ -22,7 +22,7 @@ spec:
         workingDir: /workspace
         env:
         - name: DATABASE_URL
-          value: "postgresql+psycopg2://opensre:oO?G?cU[_Q7Xk:yy<H_Pckvq66CoccPf@opensre-pilot.c21cia4scjk8.us-east-1.rds.amazonaws.com:5432/opensre"
+          value: "postgresql+psycopg2://solidai-sre:oO?G?cU[_Q7Xk:yy<H_Pckvq66CoccPf@solidai-sre-pilot.c21cia4scjk8.us-east-1.rds.amazonaws.com:5432/solidai-sre"
         - name: PYTHONPATH
           value: "/workspace"
         volumeMounts:

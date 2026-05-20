@@ -65,7 +65,7 @@ export function TelemetryInfoModal({ onClose }: TelemetryInfoModalProps) {
           {/* How it helps */}
           <div className="bg-stone-50 dark:bg-stone-700/50 rounded-lg p-4">
             <p className="text-sm text-stone-600 dark:text-stone-400">
-              Telemetry helps us improve OpenSRE by understanding usage patterns and identifying performance issues.
+              Telemetry helps us improve SolidAI SRE by understanding usage patterns and identifying performance issues.
               Data is aggregated, anonymized, and never shared with third parties.
             </p>
           </div>

@@ -18,7 +18,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 OUTPUT="$SCRIPT_DIR/kubeconfig-eks.yaml"
 
 OTEL_NAMESPACE="${OTEL_NAMESPACE:-otel-demo}"
-SA_NAME="opensre-e2e-agent"
+SA_NAME="solidai-sre-e2e-agent"
 
 echo "[eks-kubeconfig] Generating kubeconfig for sre-agent container..."
 
@@ -47,7 +47,7 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: opensre-e2e-agent-admin
+  name: solidai-sre-e2e-agent-admin
 subjects:
   - kind: ServiceAccount
     name: $SA_NAME

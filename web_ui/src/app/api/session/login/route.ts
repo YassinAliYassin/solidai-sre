@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
   const res = NextResponse.json({ ok: true, identity });
   res.cookies.set({
-    name: "opensre_session_token",
+    name: "solidai-sre_session_token",
     value: token,
     httpOnly: true,
     sameSite: "lax",

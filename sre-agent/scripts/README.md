@@ -1,6 +1,6 @@
 # SRE Agent Scripts
 
-Local development scripts for the OpenSRE SRE Agent.
+Local development scripts for the SolidAI SRE SRE Agent.
 
 > **Production deploys** use Helm charts via GitHub Actions:
 > ```bash

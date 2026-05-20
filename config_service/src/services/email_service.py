@@ -24,8 +24,8 @@ class EmailConfig:
     def from_env(cls) -> "EmailConfig":
         return cls(
             enabled=os.getenv("EMAIL_ENABLED", "0") == "1",
-            sender_email=os.getenv("EMAIL_SENDER", "noreply@opensre.io"),
-            sender_name=os.getenv("EMAIL_SENDER_NAME", "OpenSRE"),
+            sender_email=os.getenv("EMAIL_SENDER", "noreply@solidai-sre.io"),
+            sender_name=os.getenv("EMAIL_SENDER_NAME", "SolidAI SRE"),
             region=os.getenv("AWS_REGION", "us-west-2"),
         )
 
@@ -125,7 +125,7 @@ def _base_template(
                     <tr>
                       <td>
                         <span style="display: inline-flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700; color: #111827;">
-                          🦊 OpenSRE
+                          🦊 SolidAI SRE
                         </span>
                       </td>
                     </tr>
@@ -147,7 +147,7 @@ def _base_template(
               <tr>
                 <td style="padding: 24px; border-top: 1px solid #e5e7eb; text-align: center;">
                   <p style="margin: 0; font-size: 12px; color: #6b7280;">
-                    This is an automated message from OpenSRE.
+                    This is an automated message from SolidAI SRE.
                   </p>
                 </td>
               </tr>

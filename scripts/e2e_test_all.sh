@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# OpenSRE E2E Test Suite
+# SolidAI SRE E2E Test Suite
 # 
 # Runs comprehensive end-to-end tests for:
 # 1. Slack integration
@@ -28,7 +28,7 @@ NC='\033[0m'
 
 echo -e "${BLUE}"
 echo "╔═══════════════════════════════════════════════════════════╗"
-echo "║       OpenSRE E2E Test Suite                         ║"
+echo "║       SolidAI SRE E2E Test Suite                         ║"
 echo "╚═══════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
@@ -60,7 +60,7 @@ echo "✅ python3 available"
 echo -e "\n${YELLOW}Checking cluster connectivity...${NC}"
 if ! kubectl cluster-info &> /dev/null; then
     echo -e "${RED}❌ Cannot connect to Kubernetes cluster${NC}"
-    echo "Please run: aws eks update-kubeconfig --name opensre-demo --region us-west-2"
+    echo "Please run: aws eks update-kubeconfig --name solidai-sre-demo --region us-west-2"
     exit 1
 fi
 CLUSTER=$(kubectl config current-context)
@@ -68,11 +68,11 @@ echo "✅ Connected to cluster: $CLUSTER"
 
 # Check namespaces
 echo -e "\n${YELLOW}Checking namespaces...${NC}"
-if ! kubectl get ns opensre &> /dev/null; then
-    echo -e "${RED}❌ opensre namespace not found${NC}"
+if ! kubectl get ns solidai-sre &> /dev/null; then
+    echo -e "${RED}❌ solidai-sre namespace not found${NC}"
     exit 1
 fi
-echo "✅ opensre namespace exists"
+echo "✅ solidai-sre namespace exists"
 
 if ! kubectl get ns otel-demo &> /dev/null; then
     echo -e "${YELLOW}⚠️ otel-demo namespace not found (otel tests will fail)${NC}"

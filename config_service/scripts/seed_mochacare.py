@@ -119,14 +119,14 @@ MORNING_REPORT_PROMPT = """\
 Check Grafana and Amplitude for the last 12 hours (8PM-8AM overnight). \
 Output ONLY the final result — no narration, no "I will check", no process description.
 
-Always start with: "*OpenSRE Automatic Status Report*"
+Always start with: "*SolidAI SRE Automatic Status Report*"
 
 If healthy: one sentence. Example:
-*OpenSRE Automatic Status Report*
+*SolidAI SRE Automatic Status Report*
 All clear overnight — 142 agent runs, 0 failures, 99.8% uptime, p95 latency 320ms.
 
 If issues found: 2-3 bullets with numbers, then a short "Suggested action" line. Example:
-*OpenSRE Automatic Status Report*
+*SolidAI SRE Automatic Status Report*
 - 20/142 agent runs failed (14%) — top error: tool_error (12), timeout (8)
 - p95 latency spiked to 1.2s (normally 300ms)
 - Grafana: 3 alerts fired in us-west-2
@@ -140,14 +140,14 @@ EVENING_REPORT_PROMPT = """\
 Check Grafana and Amplitude for the last 12 hours (8AM-8PM daytime). \
 Output ONLY the final result — no narration, no "I will check", no process description.
 
-Always start with: "*OpenSRE Automatic Status Report*"
+Always start with: "*SolidAI SRE Automatic Status Report*"
 
 If healthy: one sentence. Example:
-*OpenSRE Automatic Status Report*
+*SolidAI SRE Automatic Status Report*
 Healthy day — 1,203 agent runs, 2 failures (0.2%), p95 latency 280ms.
 
 If issues found: 2-3 bullets with numbers, then a short "Suggested action" line. Example:
-*OpenSRE Automatic Status Report*
+*SolidAI SRE Automatic Status Report*
 - 45/1,203 agent runs failed (3.7%) — top error: timeout (30), tool_error (15)
 - Error spike at 2:15 PM, resolved by 2:40 PM
 - Grafana: elevated 5xx rate on /api/chat endpoint

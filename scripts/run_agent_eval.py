@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OpenSRE Agent Performance Evaluation
+SolidAI SRE Agent Performance Evaluation
 
 This script tests the agent's ability to diagnose and investigate incidents.
 It sends simulated incident scenarios to the agent and validates the responses.
@@ -10,7 +10,7 @@ Usage:
     python3 scripts/run_agent_eval.py --agent-url http://localhost:8080
 
     # Against deployed agent
-    python3 scripts/run_agent_eval.py --agent-url http://agent.opensre.internal:8080
+    python3 scripts/run_agent_eval.py --agent-url http://agent.solidai-sre.internal:8080
 
 Test Scenarios:
 1. Basic Kubernetes diagnosis (pods, events, logs)
@@ -217,7 +217,7 @@ def print_summary(results: List[TestResult]) -> bool:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="OpenSRE Agent Evaluation")
+    parser = argparse.ArgumentParser(description="SolidAI SRE Agent Evaluation")
     parser.add_argument(
         "--agent-url",
         default="http://localhost:8080",
@@ -234,7 +234,7 @@ def main():
 
     args = parser.parse_args()
 
-    print("\n🦊 OpenSRE Agent Evaluation")
+    print("\n🦊 SolidAI SRE Agent Evaluation")
     print("=" * 50)
     print(f"Agent URL: {args.agent_url}")
 
@@ -251,7 +251,7 @@ def main():
         print(f"❌ Cannot reach agent: {e}")
         print("\nMake sure the agent is running and accessible.")
         print(
-            "For local testing, run: kubectl port-forward svc/opensre-agent 8080:8080"
+            "For local testing, run: kubectl port-forward svc/solidai-sre-agent 8080:8080"
         )
         sys.exit(1)
 

@@ -15,16 +15,16 @@
 apiVersion: extensions.agents.x-k8s.io/v1alpha1
 kind: SandboxTemplate
 metadata:
-  name: opensre-warmpool-template
-  namespace: opensre-prod
+  name: solidai-sre-warmpool-template
+  namespace: solidai-sre-prod
   labels:
-    app: opensre
+    app: solidai-sre
     component: warmpool-template
 spec:
   podTemplate:
     metadata:
       labels:
-        app: opensre-agent
+        app: solidai-sre-agent
         component: warmpool
         warmpool: "true"
     spec:
@@ -34,7 +34,7 @@ spec:
       containers:
       # Main agent container
       - name: agent
-        image: 654654426408.dkr.ecr.us-west-2.amazonaws.com/opensre/opensre-agent:latest
+        image: 654654426408.dkr.ecr.us-west-2.amazonaws.com/solidai-sre/solidai-sre-agent:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8888
@@ -60,7 +60,7 @@ spec:
         - name: LMNR_PROJECT_API_KEY
           valueFrom:
             secretKeyRef:
-              name: opensre-secrets
+              name: solidai-sre-secrets
               key: laminar-api-key
               optional: true
         # Disable Laminar's claude-agent-sdk instrumentation

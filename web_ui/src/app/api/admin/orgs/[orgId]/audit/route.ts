@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const CONFIG_SERVICE_URL = process.env.CONFIG_SERVICE_URL || 'http://opensre-config-service:8080';
+const CONFIG_SERVICE_URL = process.env.CONFIG_SERVICE_URL || 'http://solidai-sre-config-service:8080';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ orgId: string }> }
 ) {
   const { orgId } = await params;
-  const token = request.cookies.get('opensre_session_token')?.value;
+  const token = request.cookies.get('solidai-sre_session_token')?.value;
   
   if (!token) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

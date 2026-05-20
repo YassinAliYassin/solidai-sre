@@ -1,5 +1,5 @@
 {
-  "$schema": "opensre-template-v1",
+  "$schema": "solidai-sre-template-v1",
   "$template_name": "Cloud Cost Optimization",
   "$template_slug": "aws-cost-optimization",
   "$description": "FinOps agent that systematically analyzes AWS spend, identifies waste across compute, storage, database, and networking, and provides risk-assessed optimization recommendations with implementation guidance.",

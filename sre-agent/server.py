@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OpenSRE Investigation Server (LangGraph Mode)
+SolidAI SRE Investigation Server (LangGraph Mode)
 
 Runs the LangGraph investigation graph in-process.
 Streams events via SSE using graph.astream_events().
@@ -45,7 +45,7 @@ _message_queues: Dict[str, asyncio.Queue] = {}  # Queue for sending prompts
 _response_queues: Dict[str, asyncio.Queue] = {}  # Queue for receiving events
 
 app = FastAPI(
-    title="OpenSRE Investigation Server (LangGraph)",
+    title="SolidAI SRE Investigation Server (LangGraph)",
     description="AI SRE agent for incident investigation - LangGraph mode",
     version="0.4.0",
 )
@@ -85,7 +85,7 @@ class AnswerRequest(BaseModel):
 @app.get("/")
 async def root():
     return {
-        "service": "OpenSRE Investigation Server",
+        "service": "SolidAI SRE Investigation Server",
         "mode": "langgraph",
         "version": "0.4.0",
     }
@@ -105,7 +105,7 @@ def _get_proxy_base_url() -> str:
     if os.getenv("ROUTER_LOCAL_PORT"):
         return "http://host.docker.internal:8000"
 
-    service_name = os.getenv("K8S_SERVICE_NAME", "opensre-server-svc")
+    service_name = os.getenv("K8S_SERVICE_NAME", "solidai-sre-server-svc")
     namespace = os.getenv("K8S_NAMESPACE", "default")
     return f"http://{service_name}.{namespace}.svc.cluster.local:8000"
 
@@ -1182,7 +1182,7 @@ async def investigate(request: InvestigateRequest, raw_request: Request):
 
     # Detect trigger source from headers
     trigger_source = "api"
-    if raw_request.headers.get("X-OpenSRE-Team-Token"):
+    if raw_request.headers.get("X-SolidAI SRE-Team-Token"):
         trigger_source = "web_ui"
     elif raw_request.headers.get("X-Trigger-Source"):
         trigger_source = raw_request.headers["X-Trigger-Source"]
@@ -1386,7 +1386,7 @@ if __name__ == "__main__":
     import uvicorn
 
     print("=" * 70)
-    print("OpenSRE Investigation Server (LangGraph)")
+    print("SolidAI SRE Investigation Server (LangGraph)")
     print("=" * 70)
     print()
 

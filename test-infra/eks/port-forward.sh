@@ -2,13 +2,13 @@
 set -euo pipefail
 
 # ─────────────────────────────────────────────────────────────────
-# OpenSRE E2E — Port-forward tunnels for EKS
+# SolidAI SRE E2E — Port-forward tunnels for EKS
 # Starts/stops kubectl port-forward tunnels from the host to EKS
 # services. These make observability tools available on localhost.
 # ─────────────────────────────────────────────────────────────────
 
 OTEL_NAMESPACE="${OTEL_NAMESPACE:-otel-demo}"
-PID_DIR="${PID_DIR:-/tmp/opensre-e2e-pf}"
+PID_DIR="${PID_DIR:-/tmp/solidai-sre-e2e-pf}"
 
 TUNNELS=(
     "otel-demo-prometheus-server 9090 9090 Prometheus"

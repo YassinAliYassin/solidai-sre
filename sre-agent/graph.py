@@ -1,5 +1,5 @@
 """
-OpenSRE Investigation Graph — LangGraph-based agent orchestration.
+SolidAI SRE Investigation Graph — LangGraph-based agent orchestration.
 
 Topology:
     init_context → [memory_lookup, kg_context] → planner → Send(subagents)

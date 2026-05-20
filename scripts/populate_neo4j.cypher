@@ -1,5 +1,5 @@
 // ============================================================================
-// OpenSRE Knowledge Graph — otel-demo Cluster Topology
+// SolidAI SRE Knowledge Graph — otel-demo Cluster Topology
 // Populates Neo4j with K8s infrastructure and service dependencies
 // ============================================================================
 
@@ -10,7 +10,7 @@ MATCH (n) DETACH DELETE n;
 // 1. CLUSTER & NAMESPACE
 // ============================================================================
 
-CREATE (cluster:KubernetesCluster {name: 'opensre-test', provider: 'kind', version: 'v1.35.0'})
+CREATE (cluster:KubernetesCluster {name: 'solidai-sre-test', provider: 'kind', version: 'v1.35.0'})
 CREATE (ns:KubernetesNamespace {name: 'otel-demo'})
 CREATE (cluster)-[:HAS_NAMESPACE]->(ns);
 

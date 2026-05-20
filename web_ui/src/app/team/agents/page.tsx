@@ -820,7 +820,7 @@ export default function AgentSettingsPage() {
                   <div className="text-sm font-semibold text-stone-900 dark:text-white flex items-center gap-1">
                     Active Configuration
                     <HelpTip id="effective-config" position="right">
-                      The <strong>active configuration</strong> is the final merged result of organization defaults combined with your team&apos;s overrides. This is what OpenSRE actually uses at runtime.
+                      The <strong>active configuration</strong> is the final merged result of organization defaults combined with your team&apos;s overrides. This is what SolidAI SRE actually uses at runtime.
                     </HelpTip>
                   </div>
                   <span className="text-xs text-stone-400">Read-only</span>

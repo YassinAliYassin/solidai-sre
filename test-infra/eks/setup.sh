@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ─────────────────────────────────────────────────────────────────
-# OpenSRE E2E — EKS cluster setup
+# SolidAI SRE E2E — EKS cluster setup
 # Installs otel-demo on an existing EKS cluster.
 # Unlike kind, no image pre-loading or NodePort hacks needed.
 # ─────────────────────────────────────────────────────────────────

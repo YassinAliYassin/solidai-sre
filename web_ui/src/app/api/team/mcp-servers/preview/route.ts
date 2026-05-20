@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get('opensre_session_token')?.value;
+    const token = cookieStore.get('solidai-sre_session_token')?.value;
 
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-    const configServiceUrl = process.env.CONFIG_SERVICE_URL || 'http://opensre-config-service.opensre.svc.cluster.local:8080';
+    const configServiceUrl = process.env.CONFIG_SERVICE_URL || 'http://solidai-sre-config-service.solidai-sre.svc.cluster.local:8080';
     const response = await fetch(`${configServiceUrl}/api/v1/team/mcp-servers/preview`, {
       method: 'POST',
       headers: {

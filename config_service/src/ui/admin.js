@@ -1,5 +1,5 @@
 /**
- * OpenSRE Config Service - Admin UI
+ * SolidAI SRE Config Service - Admin UI
  * Visual tree-based organization management
  */
 

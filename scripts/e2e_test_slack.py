@@ -24,8 +24,8 @@ import requests
 # Configuration
 SLACK_CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID", "C0A43KYJE03")
 AWS_REGION = os.getenv("AWS_REGION", "us-west-2")
-AGENT_NAMESPACE = os.getenv("AGENT_NAMESPACE", "opensre")
-WEB_UI_URL = os.getenv("WEB_UI_URL", "https://ui.opensre.ai")
+AGENT_NAMESPACE = os.getenv("AGENT_NAMESPACE", "solidai-sre")
+WEB_UI_URL = os.getenv("WEB_UI_URL", "https://ui.solidai-sre.ai")
 
 
 def get_secret(secret_name: str) -> str:
@@ -91,7 +91,7 @@ def call_agent_directly(message: str, timeout: int = 120) -> dict:
             "-n",
             AGENT_NAMESPACE,
             "-l",
-            "app=opensre-agent",
+            "app=solidai-sre-agent",
             "-o",
             "jsonpath={.items[0].metadata.name}",
         ],
@@ -159,7 +159,7 @@ def call_orchestrator_slack_trigger(
             "-n",
             AGENT_NAMESPACE,
             "-l",
-            "app=opensre-orchestrator",
+            "app=solidai-sre-orchestrator",
             "-o",
             "jsonpath={.items[0].metadata.name}",
         ],
@@ -173,7 +173,7 @@ def call_orchestrator_slack_trigger(
 
     # Get admin token
     try:
-        admin_token = get_secret("opensre/prod/orchestrator_internal_token")
+        admin_token = get_secret("solidai-sre/prod/orchestrator_internal_token")
     except Exception:
         admin_token = "test-admin-token"
 
@@ -225,20 +225,20 @@ def call_orchestrator_slack_trigger(
 def run_slack_e2e_test():
     """Run full Slack E2E test."""
     print("=" * 60)
-    print("🧪 OpenSRE Slack E2E Test")
+    print("🧪 SolidAI SRE Slack E2E Test")
     print("=" * 60)
 
     # Get Slack token
     print("\n1️⃣ Fetching Slack bot token...")
     try:
-        slack_token = get_secret("opensre/prod/slack_bot_token")
+        slack_token = get_secret("solidai-sre/prod/slack_bot_token")
         print("   ✅ Token retrieved")
     except Exception as e:
         print(f"   ❌ Failed: {e}")
         return False
 
     # Test message for agent
-    test_query = "What pods are running in the opensre namespace?"
+    test_query = "What pods are running in the solidai-sre namespace?"
 
     # Post initial message to Slack (for threading)
     print(f"\n2️⃣ Posting test message to Slack channel {SLACK_CHANNEL_ID}...")
@@ -299,14 +299,14 @@ def run_slack_e2e_test():
     print("\n5️⃣ Checking server-side logs...")
 
     # Orchestrator logs
-    orch_logs = get_recent_logs(AGENT_NAMESPACE, "app=opensre-orchestrator", 30)
+    orch_logs = get_recent_logs(AGENT_NAMESPACE, "app=solidai-sre-orchestrator", 30)
     if "slack" in orch_logs.lower() or "correlation" in orch_logs.lower():
         print("   ✅ Orchestrator processed request")
     else:
         print("   ⚠️ No relevant orchestrator logs")
 
     # Agent logs
-    agent_logs = get_recent_logs(AGENT_NAMESPACE, "app=opensre-agent", 30)
+    agent_logs = get_recent_logs(AGENT_NAMESPACE, "app=solidai-sre-agent", 30)
     if "run" in agent_logs.lower() or "agent" in agent_logs.lower():
         print("   ✅ Agent executed a run")
     else:

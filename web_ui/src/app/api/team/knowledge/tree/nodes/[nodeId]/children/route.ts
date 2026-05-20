@@ -10,7 +10,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ nodeId: string }> }
 ) {
-  const token = request.cookies.get('opensre_session_token')?.value;
+  const token = request.cookies.get('solidai-sre_session_token')?.value;
   
   if (!token) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });

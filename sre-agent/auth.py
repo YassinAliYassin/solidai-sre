@@ -33,7 +33,7 @@ if not JWT_SECRET:
 
 # JWT settings (must match credential-resolver/jwt_auth.py)
 JWT_ALGORITHM = "HS256"
-JWT_ISSUER = "opensre-server"
+JWT_ISSUER = "solidai-sre-server"
 JWT_AUDIENCE = "credential-resolver"
 
 

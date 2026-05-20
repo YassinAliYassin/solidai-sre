@@ -1,4 +1,4 @@
-"""Graph nodes for the OpenSRE LangGraph agent."""
+"""Graph nodes for the SolidAI SRE LangGraph agent."""
 
 from .coding import coding
 from .init_context import init_context

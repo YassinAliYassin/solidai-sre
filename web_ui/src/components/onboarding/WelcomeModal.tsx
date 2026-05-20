@@ -32,7 +32,7 @@ export function WelcomeModal({ role, onClose, onRunAgent, onSkip }: WelcomeModal
               <span className="text-2xl">⚡</span>
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Welcome to OpenSRE</h1>
+              <h1 className="text-2xl font-bold">Welcome to SolidAI SRE</h1>
               <p className="text-white/80 text-sm">Your AI incident investigation assistant</p>
             </div>
           </div>
@@ -40,7 +40,7 @@ export function WelcomeModal({ role, onClose, onRunAgent, onSkip }: WelcomeModal
           <p className="text-white/90 text-sm leading-relaxed">
             {isAdmin
               ? 'As an admin, you can configure organization settings, manage teams, and oversee incident response across your organization.'
-              : 'OpenSRE helps you investigate incidents faster by automatically analyzing logs, metrics, and traces using AI agents.'}
+              : 'SolidAI SRE helps you investigate incidents faster by automatically analyzing logs, metrics, and traces using AI agents.'}
           </p>
         </div>
 

@@ -5,7 +5,7 @@ const CONFIG_SERVICE_URL = process.env.CONFIG_SERVICE_URL || 'http://localhost:8
 
 export async function GET(request: NextRequest) {
   const cookieStore = await cookies();
-  const token = cookieStore.get('opensre_session_token')?.value;
+  const token = cookieStore.get('solidai-sre_session_token')?.value;
 
   if (!token) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

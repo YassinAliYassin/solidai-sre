@@ -32,7 +32,7 @@ MEETING_SCHEMAS = [
         "category": "meeting",
         "description": "AI meeting transcription and note-taking. Automatically records and transcribes Zoom, Google Meet, and Teams meetings.",
         "docs_url": "https://docs.fireflies.ai/",
-        "icon_url": "https://cdn.opensre.ai/icons/fireflies.svg",
+        "icon_url": "https://cdn.solidai-sre.ai/icons/fireflies.svg",
         "display_order": 100,
         "featured": True,
         "fields": [
@@ -52,7 +52,7 @@ MEETING_SCHEMAS = [
         "category": "meeting",
         "description": "AI meeting assistant that joins your calls and provides automated notes, action items, and transcripts via webhook.",
         "docs_url": "https://circleback.ai/docs/webhook-integration",
-        "icon_url": "https://cdn.opensre.ai/icons/circleback.svg",
+        "icon_url": "https://cdn.solidai-sre.ai/icons/circleback.svg",
         "display_order": 101,
         "featured": False,
         "fields": [
@@ -70,7 +70,7 @@ MEETING_SCHEMAS = [
                 "required": False,
                 "level": "org",
                 "description": "Configure this URL in Circleback dashboard to receive meeting data",
-                "default_value": "https://orchestrator.opensre.ai/webhooks/circleback",
+                "default_value": "https://orchestrator.solidai-sre.ai/webhooks/circleback",
             },
         ],
     },
@@ -80,7 +80,7 @@ MEETING_SCHEMAS = [
         "category": "meeting",
         "description": "Self-hosted meeting transcription for on-premises deployments. Runs entirely in your environment with no external data transfer.",
         "docs_url": "https://github.com/Vexa-ai/vexa",
-        "icon_url": "https://cdn.opensre.ai/icons/vexa.svg",
+        "icon_url": "https://cdn.solidai-sre.ai/icons/vexa.svg",
         "display_order": 102,
         "featured": False,
         "fields": [
@@ -109,7 +109,7 @@ MEETING_SCHEMAS = [
         "category": "meeting",
         "description": "AI meeting assistant for transcription and collaboration. Integrates with Zoom, Google Meet, and Microsoft Teams.",
         "docs_url": "https://otter.ai/integrations",
-        "icon_url": "https://cdn.opensre.ai/icons/otter.svg",
+        "icon_url": "https://cdn.solidai-sre.ai/icons/otter.svg",
         "display_order": 103,
         "featured": False,
         "fields": [
@@ -129,7 +129,7 @@ MEETING_SCHEMAS = [
         "category": "meeting",
         "description": "Real-time meeting transcription for incident war rooms. White-label bot joins Zoom, Google Meet, Teams, and Webex meetings to stream live transcripts to your investigation. SOC 2, HIPAA, GDPR compliant.",
         "docs_url": "https://docs.recall.ai/",
-        "icon_url": "https://cdn.opensre.ai/icons/recall.svg",
+        "icon_url": "https://cdn.solidai-sre.ai/icons/recall.svg",
         "display_order": 99,  # Featured, show first
         "featured": True,
         "fields": [
@@ -163,9 +163,9 @@ MEETING_SCHEMAS = [
                 "type": "string",
                 "required": False,
                 "level": "org",
-                "description": "Custom name for the meeting bot (default: OpenSRE Notetaker)",
-                "default_value": "OpenSRE Notetaker",
-                "placeholder": "OpenSRE Notetaker",
+                "description": "Custom name for the meeting bot (default: SolidAI SRE Notetaker)",
+                "default_value": "SolidAI SRE Notetaker",
+                "placeholder": "SolidAI SRE Notetaker",
             },
             {
                 "name": "bot_image_url",
@@ -181,7 +181,7 @@ MEETING_SCHEMAS = [
                 "required": False,
                 "level": "org",
                 "description": "Webhook URL to configure in Recall.ai dashboard for real-time transcripts",
-                "default_value": "https://orchestrator.opensre.ai/webhooks/recall",
+                "default_value": "https://orchestrator.solidai-sre.ai/webhooks/recall",
             },
         ],
     },

@@ -182,7 +182,7 @@ function StepWelcome() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-stone-900 dark:text-white mb-2">
-          Welcome to OpenSRE
+          Welcome to SolidAI SRE
         </h2>
         <p className="text-stone-600 dark:text-stone-400">
           Your AI SRE that automatically investigates production incidents 24/7.
@@ -191,7 +191,7 @@ function StepWelcome() {
 
       <div className="bg-forest-light/10 dark:bg-forest/20 rounded-xl p-4 border border-forest-light/30 dark:border-forest/30">
         <p className="text-sm text-forest-dark dark:text-forest-light">
-          When an incident fires, OpenSRE starts investigating immediately - analyzing logs,
+          When an incident fires, SolidAI SRE starts investigating immediately - analyzing logs,
           metrics, traces, and code changes to find the root cause before your team even opens their laptops.
         </p>
       </div>
@@ -226,7 +226,7 @@ function StepHowItWorks() {
           How Investigation Works
         </h2>
         <p className="text-stone-600 dark:text-stone-400">
-          OpenSRE uses a team of specialized AI agents that work together.
+          SolidAI SRE uses a team of specialized AI agents that work together.
         </p>
       </div>
 
@@ -300,7 +300,7 @@ function StepConnectSystems({ onNavigateAway }: { onNavigateAway: () => void }) 
         <IntegrationItem
           icon={<Slack className="w-5 h-5" />}
           name="Slack"
-          description="@opensre investigate checkout errors"
+          description="@solidai-sre investigate checkout errors"
           badge="Primary"
           badgeColor="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300"
         />
@@ -312,13 +312,13 @@ function StepConnectSystems({ onNavigateAway }: { onNavigateAway: () => void }) 
         <IntegrationItem
           icon={<Github className="w-5 h-5" />}
           name="GitHub"
-          description="Comment @opensre on PRs or issues"
+          description="Comment @solidai-sre on PRs or issues"
         />
       </div>
 
       <div className="bg-forest-light/10 dark:bg-forest/20 rounded-xl p-4 border border-forest-light/30 dark:border-forest/30">
         <p className="text-sm text-forest-dark dark:text-forest-light">
-          <strong>Tip:</strong> Start with Slack integration - it&apos;s the most common way teams use OpenSRE.
+          <strong>Tip:</strong> Start with Slack integration - it&apos;s the most common way teams use SolidAI SRE.
           Once connected, just @mention the bot in any channel.
         </p>
       </div>
@@ -558,7 +558,7 @@ function StepComplete() {
       <p className="text-sm text-stone-500 dark:text-stone-400">
         Need help? Check out the{' '}
         <a
-          href="https://opensre.mintlify.app/"
+          href="https://solidai-sre.mintlify.app/"
           target="_blank"
           rel="noopener noreferrer"
           className="text-forest hover:text-forest-dark dark:text-forest-light dark:hover:text-forest underline"

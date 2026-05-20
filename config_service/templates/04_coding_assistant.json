@@ -1,5 +1,5 @@
 {
-  "$schema": "opensre-template-v1",
+  "$schema": "solidai-sre-template-v1",
   "$template_name": "Coding Assistant",
   "$template_slug": "coding-assistant",
   "$description": "Expert software engineer that writes verified, immediately-runnable code. Follows patterns from Claude Code and Cursor: verification-first development, minimal changes, git safety, and root cause debugging.",

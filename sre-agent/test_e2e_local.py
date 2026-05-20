@@ -4,7 +4,7 @@ Local e2e test: loads team config via TEAM_TOKEN, constructs a Claude agent
 with Method 3 (systemPrompt append), and runs a query.
 
 Prerequisites:
-  - kubectl port-forward -n opensre svc/opensre-config-service 18082:8080
+  - kubectl port-forward -n solidai-sre svc/solidai-sre-config-service 18082:8080
   - ANTHROPIC_API_KEY set (or run through credential proxy)
 
 Usage:
@@ -44,11 +44,11 @@ async def main():
 
     # ── Step 1: Issue team token for otel-demo ──────────────────────────────
     print("=" * 60)
-    print("Step 1: Issuing team token for opensre-demo/otel-demo")
+    print("Step 1: Issuing team token for solidai-sre-demo/otel-demo")
     print("=" * 60)
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            f"{CONFIG_SERVICE_URL}/api/v1/admin/orgs/opensre-demo/teams/otel-demo/tokens",
+            f"{CONFIG_SERVICE_URL}/api/v1/admin/orgs/solidai-sre-demo/teams/otel-demo/tokens",
             headers={
                 "Authorization": f"Bearer {ADMIN_TOKEN}",
                 "Content-Type": "application/json",

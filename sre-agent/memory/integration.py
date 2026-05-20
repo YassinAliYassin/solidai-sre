@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 CONFIG_SERVICE_URL = os.getenv("CONFIG_SERVICE_URL", "")
 _INTERNAL_HEADERS = {"X-Internal-Service": "sre-agent"}
-_DEFAULT_ORG_ID = os.getenv("OPENSRE_TENANT_ID", "default")
+_DEFAULT_ORG_ID = os.getenv("SOLIDAI_SRE_TENANT_ID", "default")
 
 
 # ---------------------------------------------------------------------------

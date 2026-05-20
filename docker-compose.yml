@@ -149,8 +149,8 @@ services:
       # Config service integration
       - CONFIG_SERVICE_URL=http://config-service:8080
       # Tenant context for config loading
-      - OPENSRE_TENANT_ID=local
-      - OPENSRE_TEAM_ID=default
+      - SOLIDAI_SRE_TENANT_ID=local
+      - SOLIDAI_SRE_TEAM_ID=default
       # LLM access via LiteLLM proxy (OpenAI-compatible endpoint for LangGraph)
       - LITELLM_BASE_URL=http://litellm:4000/v1
       - LITELLM_API_KEY=${LITELLM_API_KEY:-sk-placeholder}

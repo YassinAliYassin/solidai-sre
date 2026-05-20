@@ -591,8 +591,8 @@ async def _record_run_start(
                 headers=_INTERNAL_SERVICE_HEADER,
                 json={
                     "run_id": run_id,
-                    "org_id": os.getenv("OPENSRE_TENANT_ID", "local"),
-                    "team_node_id": os.getenv("OPENSRE_TEAM_ID", "default"),
+                    "org_id": os.getenv("SOLIDAI_SRE_TENANT_ID", "local"),
+                    "team_node_id": os.getenv("SOLIDAI_SRE_TEAM_ID", "default"),
                     "correlation_id": thread_id,
                     "agent_name": agent_name,
                     "trigger_source": trigger_source,

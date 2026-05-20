@@ -29,9 +29,9 @@ spec:
           name: sandbox
         env:
         # Placeholder values - set at claim time via /claim endpoint
-        - name: OPENSRE_TENANT_ID
+        - name: SOLIDAI_SRE_TENANT_ID
           value: "unclaimed"
-        - name: OPENSRE_TEAM_ID
+        - name: SOLIDAI_SRE_TEAM_ID
           value: "unclaimed"
         - name: THREAD_ID
           value: "unclaimed"

@@ -289,7 +289,7 @@ def generate_report(results: List[EvalResult]) -> ValidationReport:
 def print_report(report: ValidationReport, verbose: bool = False) -> None:
     """Print a human-readable report."""
     print("\n" + "=" * 70)
-    print("📊 OPENSRE EVALUATION VALIDATION REPORT")
+    print("📊 SOLIDAI SRE EVALUATION VALIDATION REPORT")
     print("=" * 70)
     print(f"\nTimestamp: {report.timestamp}")
     print(

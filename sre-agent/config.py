@@ -7,7 +7,7 @@ agent behavior without rebuilding the image.
 
 Auth priority:
 1. TEAM_TOKEN env var → Bearer token auth (resolves correct org/team via routing)
-2. OPENSRE_TENANT_ID + OPENSRE_TEAM_ID → X-Org-Id/X-Team-Node-Id headers
+2. SOLIDAI_SRE_TENANT_ID + SOLIDAI_SRE_TEAM_ID → X-Org-Id/X-Team-Node-Id headers
 """
 
 import os
@@ -351,11 +351,11 @@ def load_team_config() -> TeamConfig:
 
     Auth priority:
     1. TEAM_TOKEN → Bearer auth (token encodes correct org/team from routing)
-    2. OPENSRE_TENANT_ID + OPENSRE_TEAM_ID → header-based auth
+    2. SOLIDAI_SRE_TENANT_ID + SOLIDAI_SRE_TEAM_ID → header-based auth
     """
     team_token = os.getenv("TEAM_TOKEN")
-    tenant_id = os.getenv("OPENSRE_TENANT_ID")
-    team_id = os.getenv("OPENSRE_TEAM_ID")
+    tenant_id = os.getenv("SOLIDAI_SRE_TENANT_ID")
+    team_id = os.getenv("SOLIDAI_SRE_TEAM_ID")
 
     url = f"{CONFIG_SERVICE_URL}/api/v1/config/me/effective"
 
@@ -367,8 +367,8 @@ def load_team_config() -> TeamConfig:
         headers = {"X-Org-Id": tenant_id, "X-Team-Node-Id": team_id}
     else:
         raise RuntimeError(
-            "Either TEAM_TOKEN or both OPENSRE_TENANT_ID and "
-            "OPENSRE_TEAM_ID must be set. Cannot load team configuration."
+            "Either TEAM_TOKEN or both SOLIDAI_SRE_TENANT_ID and "
+            "SOLIDAI_SRE_TEAM_ID must be set. Cannot load team configuration."
         )
 
     resp = httpx.get(url, headers=headers, timeout=10.0)

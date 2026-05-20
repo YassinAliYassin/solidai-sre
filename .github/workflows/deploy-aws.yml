@@ -1,0 +1,66 @@
+name: Deploy SolidAI SRE to AWS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-ec2:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+          
+      - name: Deploy to EC2
+        run: |
+          # This runs on EC2 via SSM or SSH
+          echo "Deploying to EC2..."
+          # You can use AWS SSM to run commands on EC2
+          # or set up SSH deployment
+          
+  deploy-eks:
+    name: Deploy to EKS
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+          
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name solidai-sre-cluster --region us-east-1
+          
+      - name: Deploy to EKS
+        run: |
+          cd solidai-sre
+          kubectl apply -f sre-agent/k8s/
+          echo "Deployed to EKS"
+          
+      - name: Verify deployment
+        run: |
+          kubectl get pods -n solidai-sre
+          kubectl get svc -n solidai-sre

@@ -1,22 +1,23 @@
 version: '3.8'
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# OpenSRE — Local Development Stack
-# ═══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
+# SolidAI SRE — Local Development Stack
+# ══════════════════════════════════════════════════════════════════════════════
 #
 # Services:
-#   postgres, config-service, sre-agent, web-ui, slack-bot
+#   postgres, config-service, sre-agent, web-ui, telegram-bot
 #
-# Note: slack-bot requires SLACK_BOT_TOKEN and SLACK_APP_TOKEN in .env
+# Note: telegram-bot requires TELEGRAM_BOT_TOKEN in .env
 #       If not configured, it will exit gracefully with a warning message
 #
 # Usage:
-#   make dev        Start all services
-#   make stop       Stop everything
-#   make logs       Follow logs
-#   make clean      Remove containers + volumes
+#   make dev           Start all services
+#   make dev-telegram  Start all services + Telegram bot
+#   make stop          Stop everything
+#   make logs          Follow logs
+#   make clean         Remove containers + volumes
 #
-# ═══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
 
 services:
   # ─────────────────────────────────────────────────────────────────────────────
@@ -24,10 +25,10 @@ services:
   # ─────────────────────────────────────────────────────────────────────────────
   postgres:
     image: postgres:15-alpine
-    container_name: opensre-postgres
+    container_name: solidai-sre-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: opensre
+      POSTGRES_USER: solidai
       POSTGRES_PASSWORD: localdev
       POSTGRES_DB: opensre
     ports:

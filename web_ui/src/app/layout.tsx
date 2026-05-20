@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OpenSRE",
-  description: "AI-Powered SRE Platform",
+  title: "SolidAI SRE",
+  description: "AI-Powered SRE Platform for Solid Solutions & SolidAI",
 };
 
 export default function RootLayout({

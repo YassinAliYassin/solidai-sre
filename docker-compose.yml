@@ -28,15 +28,17 @@ services:
     container_name: solidai-sre-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: solidai
-      POSTGRES_PASSWORD: localdev
-      POSTGRES_DB: solidai-sre
+      POSTGRES_USER: ${POSTGRES_USER:-solidai}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-localdev}
+      POSTGRES_DB: ${POSTGRES_DB:-solidai-sre}
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
       - "5433:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./postgres-config/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U solidai-sre -d solidai-sre"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-solidai} -d ${POSTGRES_DB:-solidai-sre}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -56,7 +58,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+psycopg2://solidai-sre:localdev@postgres:5432/solidai-sre?sslmode=disable
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-solidai}:${POSTGRES_PASSWORD:-localdev}@postgres:5432/${POSTGRES_DB:-solidai-sre}
       TOKEN_PEPPER: ${TOKEN_PEPPER:-localdev-pepper-must-be-32-chars-minimum!!}
       ADMIN_TOKEN: ${ADMIN_TOKEN:-local-admin-token}
       ADMIN_AUTH_MODE: token
@@ -120,8 +122,8 @@ services:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       NVIDIA_API_KEY: ${NVIDIA_API_KEY}
     volumes:
-      - ./litellm_config.yaml:/app/config.yaml:ro
-    command: ["--config", "/app/config.yaml", "--port", "4000"]
+      - ./litellm_config.yaml:/app/litellm_config.yaml:ro
+    command: ["--config", "/app/litellm_config.yaml", "--port", "4000"]
     ports:
       - "4001:4000"
     healthcheck:
@@ -239,45 +241,46 @@ services:
       - app_network
       - default
 
-  # ─────────────────────────────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────────────────────────────
   # Slack Bot — connects Slack to SRE Agent
   # Will exit gracefully if SLACK_BOT_TOKEN and SLACK_APP_TOKEN are not configured
-  # ─────────────────────────────────────────────────────────────────────────────
-  slack-bot:
-    build:
-      context: ./slack-bot
-      dockerfile: Dockerfile
-    container_name: solidai-sre-slack-bot
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      - SRE_AGENT_URL=http://sre-agent:8000
-      - CONFIG_SERVICE_URL=http://config-service:8080
-      - CONFIG_MODE=${CONFIG_MODE:-}
-    depends_on:
-      - sre-agent
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    # Cannot use read_only because app may write logs/temp files
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=100m
-    volumes:
-      # Mount assets read-only
-      - ./slack-bot/assets:/app/assets:ro
-    mem_limit: 1g
-    cpus: 1
-    pids_limit: 50
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    networks:
-      - app_network
-      - default  # Needs external access to connect to Slack
+  # NOTE: Disabled in cron job mode - slack-bot directory not present
+  # ─────────────────────────────────────────────────────────────────────
+  # slack-bot:
+  #   build:
+  #     context: ./slack-bot
+  #     dockerfile: Dockerfile
+  #   container_name: solidai-sre-slack-bot
+  #   restart: unless-stopped
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - SRE_AGENT_URL=http://sre-agent:8000
+  #     - CONFIG_SERVICE_URL=http://config-service:8080
+  #     - CONFIG_MODE=${CONFIG_MODE:-}
+  #   depends_on:
+  #     - sre-agent
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   cap_drop:
+  #     - ALL
+  #   # Cannot use read_only because app may write logs/temp files
+  #   tmpfs:
+  #     - /tmp:rw,noexec,nosuid,size=100m
+  #   volumes:
+  #     # Mount assets read-only
+  #     - ./slack-bot/assets:/app/assets:ro
+  #   mem_limit: 1g
+  #   cpus: 1
+  #   pids_limit: 50
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
+  #   networks:
+  #     - app_network
+  #     - default  # Needs external access to connect to Slack
 
 networks:
   app_network:

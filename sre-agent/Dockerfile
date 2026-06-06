@@ -26,7 +26,6 @@ COPY nodes/ nodes/
 COPY langgraph.json .
 COPY memory/ memory/
 COPY tools/ tools/
-COPY .claude/ .claude/
 
 # Create non-root user
 RUN useradd -m -u 1000 agent && \

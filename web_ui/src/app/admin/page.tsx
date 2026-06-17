@@ -26,8 +26,10 @@ import {
   Github,
   Code,
   RefreshCw,
+  Pause,
+  Play,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface DurationPercentiles {
   p50: number;
@@ -80,6 +82,8 @@ interface ServiceHealth {
   name: string;
   status: 'healthy' | 'degraded' | 'down';
   lastCheck: string;
+  latency_ms?: number;
+  error?: string;
 }
 
 interface IntegrationHealth {
@@ -88,6 +92,8 @@ interface IntegrationHealth {
   icon: any;
 }
 
+const HEALTH_REFRESH_INTERVAL_MS = 30000; // 30 seconds
+
 export default function AdminHomePage() {
   const { identity, error } = useIdentity();
   const [stats, setStats] = useState<OrgStats | null>(null);
@@ -95,6 +101,10 @@ export default function AdminHomePage() {
   const [pending, setPending] = useState<PendingItems>({ remediations: 0, configChanges: 0, expiringTokens: 0 });
   const [services, setServices] = useState<ServiceHealth[]>([]);
   const [integrations, setIntegrations] = useState<IntegrationHealth[]>([]);
+  const [healthLoading, setHealthLoading] = useState(false);
+  const [healthLastUpdated, setHealthLastUpdated] = useState<Date | null>(null);
+  const [healthAutoRefresh, setHealthAutoRefresh] = useState(true);
+  const healthIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Onboarding state - visitors use localStorage only
   const isVisitor = identity?.auth_kind === 'visitor';
@@ -111,6 +121,28 @@ export default function AdminHomePage() {
       setShowWelcomeModal(true);
     }
   }, [shouldShowWelcome]);
+
+  // Fetch system health with loading state
+  const fetchHealth = useCallback(async (orgId: string) => {
+    setHealthLoading(true);
+    try {
+      const res = await fetch(`/api/admin/orgs/${orgId}/health`);
+      if (res.ok) {
+        const data = await res.json();
+        setServices(data.services || []);
+        const integrationsWithIcons = (data.integrations || []).map((int: any) => ({
+          ...int,
+          icon: getIntegrationIcon(int.name),
+        }));
+        setIntegrations(integrationsWithIcons);
+        setHealthLastUpdated(new Date());
+      }
+    } catch (err) {
+      console.error('Failed to load health:', err);
+    } finally {
+      setHealthLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!identity?.org_id) return;
@@ -133,22 +165,32 @@ export default function AdminHomePage() {
       .then(data => data && setPending(data))
       .catch(err => console.error('Failed to load pending items:', err));
 
-    // Fetch system health (services + integrations)
-    fetch(`/api/admin/orgs/${identity.org_id}/health`)
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (data) {
-          setServices(data.services || []);
-          // Map integration icons
-          const integrationsWithIcons = (data.integrations || []).map((int: any) => ({
-            ...int,
-            icon: getIntegrationIcon(int.name),
-          }));
-          setIntegrations(integrationsWithIcons);
-        }
-      })
-      .catch(err => console.error('Failed to load health:', err));
-  }, [identity?.org_id]);
+    // Initial health fetch
+    fetchHealth(identity.org_id);
+  }, [identity?.org_id, fetchHealth]);
+
+  // Auto-refresh health data
+  useEffect(() => {
+    if (!identity?.org_id || !healthAutoRefresh) {
+      if (healthIntervalRef.current) {
+        clearInterval(healthIntervalRef.current);
+        healthIntervalRef.current = null;
+      }
+      return;
+    }
+
+    healthIntervalRef.current = setInterval(() => {
+      const orgId = identity?.org_id;
+      if (orgId) fetchHealth(orgId);
+    }, HEALTH_REFRESH_INTERVAL_MS);
+
+    return () => {
+      if (healthIntervalRef.current) {
+        clearInterval(healthIntervalRef.current);
+        healthIntervalRef.current = null;
+      }
+    };
+  }, [identity?.org_id, healthAutoRefresh, fetchHealth]);
 
   // Helper to map integration names to icons
   const getIntegrationIcon = (name: string) => {
@@ -517,16 +559,68 @@ export default function AdminHomePage() {
             {/* System Health */}
             <div className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl shadow-sm">
               <div className="p-5 border-b border-stone-200 dark:border-stone-700">
-                <h2 className="text-lg font-semibold text-stone-900 dark:text-white">System Health</h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-stone-900 dark:text-white">System Health</h2>
+                  <div className="flex items-center gap-2">
+                    {healthLastUpdated && (
+                      <span className="text-xs text-stone-400" title={healthLastUpdated.toISOString()}>
+                        Updated {formatRelativeTime(healthLastUpdated.toISOString())}
+                      </span>
+                    )}
+                    <button
+                      onClick={() => setHealthAutoRefresh(!healthAutoRefresh)}
+                      className={`p-1.5 rounded-md transition-colors ${
+                        healthAutoRefresh
+                          ? 'text-forest hover:bg-forest/10'
+                          : 'text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700'
+                      }`}
+                      title={healthAutoRefresh ? 'Pause auto-refresh' : 'Resume auto-refresh'}
+                    >
+                      {healthAutoRefresh ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                    </button>
+                    <button
+                      onClick={() => identity?.org_id && fetchHealth(identity.org_id)}
+                      disabled={healthLoading}
+                      className="p-1.5 rounded-md text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors disabled:opacity-50"
+                      title="Refresh now"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${healthLoading ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
+                </div>
+                {healthAutoRefresh && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <div className="h-0.5 flex-1 bg-stone-100 dark:bg-stone-700 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-forest/40 rounded-full animate-pulse"
+                        style={{ width: '100%', animationDuration: `${HEALTH_REFRESH_INTERVAL_MS}ms`, animationName: 'healthProgress' }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-stone-400">Auto-refresh 30s</span>
+                  </div>
+                )}
               </div>
               <div className="p-5 space-y-4">
                 <div>
                   <div className="text-xs font-medium text-stone-500 uppercase mb-2">Services</div>
                   <div className="space-y-2">
+                    {services.length === 0 && !healthLoading && (
+                      <div className="text-xs text-stone-400 italic">No health data available</div>
+                    )}
                     {services.map((service) => (
                       <div key={service.name} className="flex items-center justify-between">
-                        <span className="text-sm text-stone-700 dark:text-stone-300">{service.name}</span>
-                        {getServiceStatusBadge(service.status)}
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-stone-700 dark:text-stone-300">{service.name}</span>
+                          {service.latency_ms !== undefined && (
+                            <span className="text-[10px] text-stone-400 font-mono">{service.latency_ms}ms</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {service.error && (
+                            <span className="text-[10px] text-clay" title={service.error}>⚠</span>
+                          )}
+                          {getServiceStatusBadge(service.status)}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -535,6 +629,9 @@ export default function AdminHomePage() {
                 <div className="border-t border-stone-200 dark:border-stone-700 pt-4">
                   <div className="text-xs font-medium text-stone-500 uppercase mb-2">Integrations</div>
                   <div className="space-y-2">
+                    {integrations.length === 0 && (
+                      <div className="text-xs text-stone-400 italic">No integrations configured</div>
+                    )}
                     {integrations.map((integration) => {
                       const Icon = integration.icon;
                       return (

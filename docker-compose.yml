@@ -44,6 +44,7 @@ services:
       retries: 10
     networks:
       - app_network
+      - default
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Config Service — team config, tokens, audit logging
@@ -110,6 +111,7 @@ services:
       start_period: 30s
     networks:
       - app_network
+      - default
 
   # ─────────────────────────────────────────────────────────────────────────────
   # LiteLLM Proxy — translates Anthropic API to OpenRouter (replaces credential-proxy)

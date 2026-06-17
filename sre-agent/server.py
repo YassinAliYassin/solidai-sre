@@ -100,6 +100,82 @@ async def health():
     }
 
 
+@app.get("/status")
+async def system_status():
+    """Check health of all dependent services (config-service, litellm, neo4j)."""
+    services = {}
+
+    # Check config-service
+    config_url = os.getenv("CONFIG_SERVICE_URL", "")
+    if config_url:
+        try:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(5.0)) as client:
+                resp = await client.get(f"{config_url.rstrip('/')}/health")
+                services["config_service"] = {
+                    "status": "healthy" if resp.status_code == 200 else "degraded",
+                    "latency_ms": int(resp.elapsed.total_seconds() * 1000),
+                }
+        except Exception as e:
+            services["config_service"] = {"status": "unreachable", "error": str(e)[:200]}
+    else:
+        services["config_service"] = {"status": "not_configured"}
+
+    # Check litellm proxy
+    litellm_base = os.getenv("LITELLM_BASE_URL", "")
+    if litellm_base:
+        # Strip /v1 suffix if present — health endpoint is at root, not under /v1
+        litellm_root = litellm_base.rstrip("/").removesuffix("/v1")
+        try:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
+                resp = await client.get(f"{litellm_root}/health")
+                services["litellm"] = {
+                    "status": "healthy" if resp.status_code == 200 else "degraded",
+                    "latency_ms": int(resp.elapsed.total_seconds() * 1000),
+                }
+        except Exception as e:
+            services["litellm"] = {"status": "unreachable", "error": str(e)[:200]}
+    else:
+        services["litellm"] = {"status": "not_configured"}
+
+    # Check neo4j
+    neo4j_uri = os.getenv("NEO4J_URI", "")
+    if neo4j_uri:
+        try:
+            from neo4j import GraphDatabase as _Neo4jDriver  # type: ignore[import-untyped]
+
+            neo4j_user = os.getenv("NEO4J_USERNAME", "neo4j")
+            neo4j_pass = os.getenv("NEO4J_PASSWORD", "")
+
+            bolt_addr = neo4j_uri.replace("bolt://", "")
+            with _Neo4jDriver.driver(f"bolt://{bolt_addr}", auth=(neo4j_user, neo4j_pass)) as drv:
+                drv.verify_connectivity()
+                services["neo4j"] = {"status": "healthy"}
+        except ImportError:
+            services["neo4j"] = {"status": "driver_not_installed"}
+        except Exception as e:
+            services["neo4j"] = {"status": "unreachable", "error": str(e)[:200]}
+    else:
+        services["neo4j"] = {"status": "not_configured"}
+
+    # Overall status
+    all_healthy = all(
+        s.get("status") == "healthy" for s in services.values()
+    )
+    any_unreachable = any(
+        s.get("status") == "unreachable" for s in services.values()
+    )
+
+    overall = "healthy" if all_healthy else ("degraded" if not any_unreachable else "partial_outage")
+
+    return {
+        "status": overall,
+        "mode": "langgraph",
+        "active_sessions": len(_background_tasks),
+        "services": services,
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    }
+
+
 def _get_proxy_base_url() -> str:
     """Get the base URL for file proxy that agent can access."""
     if os.getenv("ROUTER_LOCAL_PORT"):

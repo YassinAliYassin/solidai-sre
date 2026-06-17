@@ -1665,15 +1665,120 @@ def admin_get_pending_items(
     }
 
 
+def _check_tcp_service(host: str, port: int, timeout: float = 3.0) -> dict:
+    """Check if a TCP service is reachable."""
+    import socket
+
+    try:
+        start = datetime.utcnow()
+        s = socket.create_connection((host, port), timeout=timeout)
+        s.close()
+        latency_ms = int((datetime.utcnow() - start).total_seconds() * 1000)
+        return {"status": "healthy", "latency_ms": latency_ms}
+    except Exception as e:
+        return {"status": "down", "error": str(e)[:200]}
+
+
+def _check_http_service(url: str, timeout: float = 5.0) -> dict:
+    """Check if an HTTP service responds with 2xx."""
+    import urllib.request
+    import urllib.error
+
+    try:
+        start = datetime.utcnow()
+        req = urllib.request.Request(url, method="GET")
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            latency_ms = int((datetime.utcnow() - start).total_seconds() * 1000)
+            if 200 <= resp.status < 300:
+                return {"status": "healthy", "latency_ms": latency_ms}
+            return {"status": "degraded", "http_status": resp.status, "latency_ms": latency_ms}
+    except urllib.error.HTTPError as e:
+        return {"status": "degraded", "http_status": e.code, "error": str(e)[:200], "latency_ms": None}
+    except Exception as e:
+        return {"status": "down", "error": str(e)[:200]}
+
+
 @router.get("/orgs/{org_id}/health")
 def admin_get_system_health(
     org_id: str,
     principal: AdminPrincipal = Depends(require_admin),
     session: Session = Depends(get_db),
 ):
-    """Get system health status for services and integrations."""
+    """Get system health status for services and integrations.
+
+    Performs real health checks against all core services:
+    - Agent Service (sre-agent) via HTTP /health
+    - Config Service (self) via HTTP /health
+    - LiteLLM Proxy via HTTP /health
+    - Web UI via HTTP /api/health
+    - PostgreSQL via TCP connection
+    - Neo4j via TCP connection
+    """
     check_org_access(principal, org_id)
     from src.db.models import Integration
+
+    now = datetime.utcnow().isoformat()
+
+    # --- Real service health checks ---
+    # Use asyncio-friendly concurrent checks via threading
+    import concurrent.futures
+
+    def _check_sre_agent():
+        result = _check_http_service("http://sre-agent:8000/health", timeout=5.0)
+        return "Agent Service", result
+
+    def _check_config_self():
+        result = _check_http_service("http://config-service:8080/health", timeout=3.0)
+        return "Config Service", result
+
+    def _check_litellm():
+        result = _check_http_service("http://litellm:4000/health", timeout=5.0)
+        return "LiteLLM Proxy", result
+
+    def _check_web_ui():
+        result = _check_http_service("http://web-ui:3000/api/health", timeout=5.0)
+        return "Web UI", result
+
+    def _check_postgres():
+        result = _check_tcp_service("postgres", 5432, timeout=3.0)
+        return "PostgreSQL", result
+
+    def _check_neo4j():
+        result = _check_tcp_service("neo4j", 7474, timeout=3.0)
+        return "Neo4j", result
+
+    checks = [
+        _check_sre_agent,
+        _check_config_self,
+        _check_litellm,
+        _check_web_ui,
+        _check_postgres,
+        _check_neo4j,
+    ]
+
+    services = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(checks)) as executor:
+        futures = {executor.submit(fn): fn.__name__ for fn in checks}
+        for future in concurrent.futures.as_completed(futures, timeout=10):
+            try:
+                name, result = future.result()
+                services.append({
+                    "name": name,
+                    "status": result["status"],
+                    "lastCheck": now,
+                    **({"latency_ms": result["latency_ms"]} if "latency_ms" in result else {}),
+                    **({"error": result["error"]} if "error" in result else {}),
+                })
+            except Exception as e:
+                services.append({
+                    "name": futures[future].replace("_check_", "").replace("_", " ").title(),
+                    "status": "down",
+                    "lastCheck": now,
+                    "error": str(e)[:200],
+                })
+
+    # Sort services by name for consistent ordering
+    services.sort(key=lambda s: s["name"])
 
     # Get all integrations for the org
     integrations = session.query(Integration).filter(Integration.org_id == org_id).all()
@@ -1692,30 +1797,6 @@ def admin_get_system_health(
                 "icon": integration.integration_type,
             }
         )
-
-    # System services health (hardcoded for now - could be enhanced with actual health checks)
-    services = [
-        {
-            "name": "Agent Service",
-            "status": "healthy",
-            "lastCheck": datetime.utcnow().isoformat(),
-        },
-        {
-            "name": "Config Service",
-            "status": "healthy",
-            "lastCheck": datetime.utcnow().isoformat(),
-        },
-        {
-            "name": "Orchestrator",
-            "status": "healthy",
-            "lastCheck": datetime.utcnow().isoformat(),
-        },
-        {
-            "name": "Web UI",
-            "status": "healthy",
-            "lastCheck": datetime.utcnow().isoformat(),
-        },
-    ]
 
     ADMIN_ACTIONS_TOTAL.labels("get_system_health", "ok").inc()
 

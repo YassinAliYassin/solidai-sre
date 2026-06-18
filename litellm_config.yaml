@@ -4,11 +4,14 @@
 # Model routing: requests for any model (*) are tried against each entry
 # in order. If the primary fails, litellm falls through to the next entry.
 #
-# Primary:   openrouter/owl-alpha  (free, 1M context, OpenRouter)
-# Fallback1: openrouter/auto       (router picks best available model)
+# Primary:   openrouter/owl-alpha                      (free, 1M context, OpenRouter)
+# Fallback1: nvidia/nemotron-3-super-120b-a12b:free    (free, 1M context, OpenRouter)
+# Fallback2: openrouter/auto                          (router picks best available model)
 #
 # NOTE: openrouter/free was removed — it consistently returns 502 from
 #       OpenRouter's "Stealth" provider and adds no value over auto.
+# NOTE: owl-alpha can take 15-20s response time from VPS network — litellm
+#       request_timeout is set to 300s to accommodate slow responses.
 
 model_list:
   # Primary model
@@ -17,7 +20,13 @@ model_list:
       model: openrouter/owl-alpha
       api_key: os.environ/OPENROUTER_API_KEY
 
-  # Fallback: OpenRouter auto router (picks best available model)
+  # Fallback 1: NVIDIA Nemotron 3 Super (free, reliable)
+  - model_name: "*"
+    litellm_params:
+      model: nvidia/nemotron-3-super-120b-a12b:free
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  # Fallback 2: OpenRouter auto router (picks best available model)
   - model_name: "*"
     litellm_params:
       model: openrouter/auto

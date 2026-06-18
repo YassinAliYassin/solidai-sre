@@ -668,11 +668,14 @@ async def get_health_summary():
     })
 
 
-async def _check_litellm_model(model_name: str, timeout: float = 15.0) -> dict:
+async def _check_litellm_model(model_name: str, timeout: float = 25.0) -> dict:
     """Test a single litellm model by sending a minimal completion request.
 
     Uses a short max_tokens to keep the check fast. If the model times out,
     reports it as degraded rather than waiting indefinitely.
+
+    Note: timeout is 25s because OpenRouter can take 15-20s from some VPS
+    network locations. The litellm proxy itself adds latency on top.
     """
     litellm_url = "http://litellm:4000"
     api_key = os.getenv("OPENROUTER_API_KEY", "")
@@ -693,6 +696,15 @@ async def _check_litellm_model(model_name: str, timeout: float = 15.0) -> dict:
         latency_ms = int((time.monotonic() - start) * 1000)
         if resp.status_code == 200:
             return {"model": model_name, "status": "healthy", "latency_ms": latency_ms}
+        # 402 = credit exhaustion (needs user action to refill)
+        if resp.status_code == 402:
+            return {
+                "model": model_name,
+                "status": "no_credits",
+                "latency_ms": latency_ms,
+                "http_status": 402,
+                "error": "Insufficient credits — add more at https://openrouter.ai/settings/credits",
+            }
         # 429 rate limit or 503 service unavailable = degraded, not unreachable
         if resp.status_code in (429, 503, 502):
             return {
@@ -712,8 +724,8 @@ async def _check_litellm_model(model_name: str, timeout: float = 15.0) -> dict:
     except httpx.TimeoutException:
         return {
             "model": model_name,
-            "status": "degraded",
-            "error": f"Request timed out after {timeout}s (provider may be slow)",
+            "status": "timeout",
+            "error": f"Request timed out after {timeout}s (provider may be slow or network latency high)",
         }
     except Exception as e:
         return {"model": model_name, "status": "unreachable", "error": str(e)[:200]}
@@ -729,14 +741,26 @@ async def get_model_health():
     models = [
         "openrouter/owl-alpha",
         "openrouter/auto",
+        "nvidia/nemotron-3-super-120b-a12b:free",
     ]
     tasks = [_check_litellm_model(m) for m in models]
     results = await asyncio.gather(*tasks)
 
     all_healthy = all(r["status"] == "healthy" for r in results)
     any_healthy = any(r["status"] == "healthy" for r in results)
+    any_no_credits = any(r["status"] == "no_credits" for r in results)
+    any_timeout = any(r["status"] == "timeout" for r in results)
 
-    overall = "healthy" if all_healthy else ("degraded" if any_healthy else "all_down")
+    if all_healthy:
+        overall = "healthy"
+    elif any_healthy:
+        overall = "degraded"  # Some models work
+    elif any_no_credits:
+        overall = "no_credits"  # All down due to credit exhaustion
+    elif any_timeout:
+        overall = "timeout"  # All down due to network timeouts
+    else:
+        overall = "all_down"
 
     return _JSONResponse({
         "status": overall,

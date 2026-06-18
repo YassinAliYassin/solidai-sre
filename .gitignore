@@ -87,3 +87,5 @@ test-infra/eks/kubeconfig-eks.yaml
 # Large video/media files
 video-analysis-frames/
 SolidAI SRE*.mp4
+cf_check.py
+cf_check.sh

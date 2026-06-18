@@ -94,6 +94,20 @@ interface IntegrationHealth {
   icon: any;
 }
 
+interface LitellmModelHealth {
+  model: string;
+  litellmProxy?: boolean;
+  error?: string;
+}
+
+interface LitellmHealthData {
+  healthy_count: number;
+  unhealthy_count: number;
+  healthy: LitellmModelHealth[];
+  unhealthy: LitellmModelHealth[];
+  generated_at: string;
+}
+
 interface HealthUptime {
   uptime_pct: number | null;
   total_checks: number;
@@ -128,6 +142,8 @@ export default function AdminHomePage() {
   const [healthAutoRefresh, setHealthAutoRefresh] = useState(true);
   const [healthHistory, setHealthHistory] = useState<Record<string, ServiceHealthHistory>>({});
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [litellmHealth, setLitellmHealth] = useState<LitellmHealthData | null>(null);
+  const [litellmLoading, setLitellmLoading] = useState(false);
   const healthIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const historyIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -185,6 +201,22 @@ export default function AdminHomePage() {
     }
   }, []);
 
+  // Fetch litellm model health
+  const fetchLitellmHealth = useCallback(async () => {
+    setLitellmLoading(true);
+    try {
+      const res = await fetch('/api/admin/litellm-health', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        setLitellmHealth(data);
+      }
+    } catch (err) {
+      console.error('Failed to load litellm health:', err);
+    } finally {
+      setLitellmLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!identity?.org_id) return;
 
@@ -210,7 +242,9 @@ export default function AdminHomePage() {
     fetchHealth(identity.org_id);
     // Initial health history fetch
     fetchHealthHistory();
-  }, [identity?.org_id, fetchHealth, fetchHealthHistory]);
+    // Initial litellm health fetch
+    fetchLitellmHealth();
+  }, [identity?.org_id, fetchHealth, fetchHealthHistory, fetchLitellmHealth]);
 
   // Auto-refresh health data
   useEffect(() => {
@@ -225,6 +259,7 @@ export default function AdminHomePage() {
     healthIntervalRef.current = setInterval(() => {
       const orgId = identity?.org_id;
       if (orgId) fetchHealth(orgId);
+      fetchLitellmHealth();
     }, HEALTH_REFRESH_INTERVAL_MS);
 
     return () => {
@@ -747,6 +782,75 @@ export default function AdminHomePage() {
                       );
                     })}
                   </div>
+                </div>
+
+                {/* LLM Model Health */}
+                <div className="border-t border-stone-200 dark:border-stone-700 pt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-xs font-medium text-stone-500 uppercase">LLM Models</div>
+                    <button
+                      onClick={fetchLitellmHealth}
+                      disabled={litellmLoading}
+                      className="p-1 rounded text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors disabled:opacity-50"
+                      title="Refresh litellm health"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${litellmLoading ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
+                  {!litellmHealth && !litellmLoading && (
+                    <div className="text-xs text-stone-400 italic">No litellm data — click refresh</div>
+                  )}
+                  {litellmLoading && (
+                    <div className="text-xs text-stone-400 italic">Checking models...</div>
+                  )}
+                  {litellmHealth && (
+                    <div className="space-y-2">
+                      {/* Summary badge row */}
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                          <CheckCircle className="w-2.5 h-2.5" />
+                          {litellmHealth.healthy_count} healthy
+                        </span>
+                        {litellmHealth.unhealthy_count > 0 && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                            <XCircle className="w-2.5 h-2.5" />
+                            {litellmHealth.unhealthy_count} unhealthy
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Healthy models */}
+                      {litellmHealth.healthy.map((m) => (
+                        <div key={m.model} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="w-3 h-3 text-green-500" />
+                            <span className="text-xs font-mono text-stone-700 dark:text-stone-300">{m.model}</span>
+                          </div>
+                          <span className="text-[10px] text-green-600 dark:text-green-400">OK</span>
+                        </div>
+                      ))}
+
+                      {/* Unhealthy models */}
+                      {litellmHealth.unhealthy.map((m) => (
+                        <div key={m.model} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <XCircle className="w-3 h-3 text-red-500 flex-shrink-0" />
+                            <span className="text-xs font-mono text-stone-700 dark:text-stone-300 truncate">{m.model}</span>
+                          </div>
+                          <span className="text-[10px] text-red-500 flex-shrink-0 ml-2" title={m.error}>Error</span>
+                        </div>
+                      ))}
+                      {litellmHealth.unhealthy.length > 0 && (
+                        <div className="mt-1 space-y-1">
+                          {litellmHealth.unhealthy.map((m) => m.error && (
+                            <div key={`${m.model}-err`} className="text-[10px] text-red-400 bg-red-50 dark:bg-red-900/20 rounded px-2 py-1 font-mono break-all">
+                              {m.error}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

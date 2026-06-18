@@ -264,6 +264,9 @@ services:
       - CHECK_INTERVAL=${CHECK_INTERVAL:-60}
       - ALERT_COOLDOWN=${ALERT_COOLDOWN:-300}
       - STARTUP_DELAY=${STARTUP_DELAY:-15}
+      - HISTORY_FILE=${HISTORY_FILE:-/tmp/health_history.json}
+    ports:
+      - "8090:8090"
     depends_on:
       - config-service
       - sre-agent

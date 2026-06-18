@@ -11,6 +11,8 @@ Environment variables (from .env or docker-compose):
     TELEGRAM_CHAT_ID     - Chat ID to send alerts to
     CHECK_INTERVAL       - Seconds between health checks (default: 60)
     ALERT_COOLDOWN       - Seconds before re-alerting on same service (default: 300)
+    HISTORY_FILE         - Path to health history JSON file (default: /tmp/health_history.json)
+    HISTORY_MAX_ENTRIES  - Max history entries per service (default: 288 = 24h at 5min intervals)
 """
 
 import asyncio
@@ -40,6 +42,8 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL", "60"))
 ALERT_COOLDOWN = int(os.getenv("ALERT_COOLDOWN", "300"))
+HISTORY_FILE = os.getenv("HISTORY_FILE", "/tmp/health_history.json")
+HISTORY_MAX_ENTRIES = int(os.getenv("HISTORY_MAX_ENTRIES", "288"))
 
 # Service definitions: name -> check function config
 # Uses Docker Compose service names for internal checks
@@ -100,6 +104,15 @@ PUBLIC_ENDPOINTS = [
     },
 ]
 
+# Integration health checks
+INTEGRATIONS = [
+    {
+        "name": "Telegram Bot",
+        "type": "telegram_bot",
+        "timeout": 10.0,
+    },
+]
+
 # ---------------------------------------------------------------------------
 # State tracking
 # ---------------------------------------------------------------------------
@@ -142,6 +155,43 @@ async def _check_http(url: str, timeout: float) -> dict:
         return {"status": "down", "error": str(e)[:200]}
 
 
+async def _check_telegram_bot(timeout: float) -> dict:
+    """Check Telegram bot connectivity by calling getMe API."""
+    if not TELEGRAM_BOT_TOKEN:
+        return {"status": "not_configured", "error": "TELEGRAM_BOT_TOKEN not set"}
+
+    try:
+        start = time.monotonic()
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getMe"
+        async with httpx.AsyncClient(timeout=httpx.Timeout(timeout)) as client:
+            resp = await client.get(url)
+        latency_ms = int((time.monotonic() - start) * 1000)
+
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get("ok"):
+                bot_info = data.get("result", {})
+                bot_name = bot_info.get("username", "unknown")
+                return {
+                    "status": "healthy",
+                    "latency_ms": latency_ms,
+                    "details": f"Bot @{bot_name}",
+                }
+            return {
+                "status": "degraded",
+                "latency_ms": latency_ms,
+                "error": "Telegram API returned ok=false",
+            }
+        return {
+            "status": "degraded",
+            "http_status": resp.status_code,
+            "latency_ms": latency_ms,
+            "error": f"HTTP {resp.status_code}: {resp.text[:200]}",
+        }
+    except Exception as e:
+        return {"status": "down", "error": str(e)[:200]}
+
+
 async def check_service(service: dict) -> dict:
     """Run a single service health check."""
     name = service["name"]
@@ -150,6 +200,8 @@ async def check_service(service: dict) -> dict:
             result = await _check_http(service["url"], service["timeout"])
         elif service["type"] == "tcp":
             result = _check_tcp(service["host"], service["port"], service["timeout"])
+        elif service["type"] == "telegram_bot":
+            result = await _check_telegram_bot(service["timeout"])
         else:
             result = {"status": "unknown", "error": f"Unknown check type: {service['type']}"}
     except Exception as e:
@@ -171,6 +223,90 @@ async def check_public_endpoints() -> list[dict]:
     tasks = [check_service(s) for s in PUBLIC_ENDPOINTS]
     return await asyncio.gather(*tasks)
 
+
+async def check_integrations() -> list[dict]:
+    """Check integration connectivity."""
+    tasks = [check_service(s) for s in INTEGRATIONS]
+    return await asyncio.gather(*tasks)
+
+
+# ---------------------------------------------------------------------------
+# Health history (persisted to JSON file)
+# ---------------------------------------------------------------------------
+
+def _load_history() -> dict:
+    """Load health history from disk."""
+    try:
+        if os.path.exists(HISTORY_FILE):
+            with open(HISTORY_FILE, "r") as f:
+                return json.load(f)
+    except Exception as e:
+        logger.warning(f"Failed to load health history: {e}")
+    return {}
+
+
+def _save_history(history: dict):
+    """Save health history to disk, trimming old entries."""
+    try:
+        # Trim entries per service to max allowed
+        for name in history:
+            if len(history[name]) > HISTORY_MAX_ENTRIES:
+                history[name] = history[name][-HISTORY_MAX_ENTRIES:]
+        with open(HISTORY_FILE, "w") as f:
+            json.dump(history, f, indent=2)
+    except Exception as e:
+        logger.warning(f"Failed to save health history: {e}")
+
+
+def _record_history(results: list[dict]):
+    """Record health check results to history file."""
+    history = _load_history()
+    for result in results:
+        name = result["name"]
+        if name not in history:
+            history[name] = []
+        entry = {
+            "timestamp": result["timestamp"],
+            "status": result["status"],
+        }
+        if result.get("latency_ms") is not None:
+            entry["latency_ms"] = result["latency_ms"]
+        if result.get("error"):
+            entry["error"] = result["error"]
+        history[name].append(entry)
+    _save_history(history)
+
+
+def get_uptime_stats(history: dict, service_name: str, window_hours: int = 24) -> dict:
+    """Calculate uptime percentage for a service over a time window."""
+    entries = history.get(service_name, [])
+    if not entries:
+        return {"uptime_pct": None, "total_checks": 0, "healthy_count": 0}
+
+    cutoff = (
+        datetime.datetime.now(datetime.timezone.utc)
+        - datetime.timedelta(hours=window_hours)
+    ).isoformat()
+
+    recent = [e for e in entries if e["timestamp"] >= cutoff]
+    if not recent:
+        return {"uptime_pct": None, "total_checks": 0, "healthy_count": 0}
+
+    healthy = sum(1 for e in recent if e["status"] == "healthy")
+    total = len(recent)
+    uptime_pct = round(healthy / total * 100, 1) if total > 0 else None
+
+    return {
+        "uptime_pct": uptime_pct,
+        "total_checks": total,
+        "healthy_count": healthy,
+        "window_hours": window_hours,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Telegram alerting
+# ---------------------------------------------------------------------------
 
 async def send_telegram(message: str) -> bool:
     """Send a message via Telegram bot."""
@@ -277,11 +413,19 @@ async def run_health_check():
     public_results = await check_public_endpoints()
     await process_results(public_results, is_public=True)
 
+    # Check integrations
+    integration_results = await check_integrations()
+    await process_results(integration_results, is_public=False)
+
+    # Record history for all results
+    all_results = internal_results + public_results + integration_results
+    _record_history(all_results)
+
     # Log summary
-    healthy = sum(1 for r in internal_results + public_results if r["status"] == "healthy")
-    total = len(internal_results) + len(public_results)
-    degraded = sum(1 for r in internal_results + public_results if r["status"] == "degraded")
-    down = sum(1 for r in internal_results + public_results if r["status"] == "down")
+    healthy = sum(1 for r in all_results if r["status"] == "healthy")
+    total = len(all_results)
+    degraded = sum(1 for r in all_results if r["status"] == "degraded")
+    down = sum(1 for r in all_results if r["status"] == "down")
 
     logger.info(
         f"Health check complete: {healthy}/{total} healthy, "
@@ -289,10 +433,66 @@ async def run_health_check():
     )
 
     # Print detailed status
-    for r in internal_results + public_results:
-        status_emoji = {"healthy": "✅", "degraded": "⚠️", "down": "❌"}.get(r["status"], "❓")
-        latency = f" ({r['latency_ms']}ms)" if r.get("latency_ms") else ""
-        logger.info(f"  {status_emoji} {r['name']}: {r['status']}{latency}")
+    for r in all_results:
+        status_emoji = {"healthy": "✅", "degraded": "⚠️", "down": "❌", "not_configured": "⚪"}.get(r["status"], "❓")
+        latency = f" ({r['latency_ms']}ms)" if r.get("latency_ms") is not None else ""
+        details = f" [{r['details']}]" if r.get("details") else ""
+        logger.info(f"  {status_emoji} {r['name']}: {r['status']}{latency}{details}")
+
+
+# ---------------------------------------------------------------------------
+# Health history HTTP API (lightweight, runs in same process)
+# ---------------------------------------------------------------------------
+
+from fastapi import FastAPI as _FastAPI
+from fastapi.responses import JSONResponse as _JSONResponse
+
+_api_app = _FastAPI(title="SolidAI SRE Health Monitor API", version="0.2.0")
+
+
+@_api_app.get("/api/health-history")
+async def get_health_history(window_hours: int = 24):
+    """Get health history with uptime stats for all services."""
+    history = _load_history()
+    response = {}
+    for name, entries in history.items():
+        stats = get_uptime_stats(history, name, window_hours)
+        recent_entries = entries[-20:]  # Last 20 entries for detail
+        response[name] = {
+            "uptime": stats,
+            "recent": recent_entries,
+        }
+    return _JSONResponse(response)
+
+
+@_api_app.get("/api/health-history/{service_name}")
+async def get_service_history(service_name: str, window_hours: int = 24):
+    """Get health history for a specific service."""
+    history = _load_history()
+    if service_name not in history:
+        return _JSONResponse(
+            {"error": f"No history for service: {service_name}"}, status_code=404
+        )
+    stats = get_uptime_stats(history, service_name, window_hours)
+    return _JSONResponse({
+        "name": service_name,
+        "uptime": stats,
+        "history": history[service_name][-100:],  # Last 100 entries
+    })
+
+
+async def _run_api_server():
+    """Run the health history API server on port 8090."""
+    import uvicorn
+
+    config = uvicorn.Config(
+        _api_app,
+        host="0.0.0.0",
+        port=8090,
+        log_level="warning",
+    )
+    server = uvicorn.Server(config)
+    await server.serve()
 
 
 async def main():
@@ -303,7 +503,9 @@ async def main():
     logger.info(f"  Alert cooldown: {ALERT_COOLDOWN}s")
     logger.info(f"  Services monitored: {len(SERVICES)}")
     logger.info(f"  Public endpoints: {len(PUBLIC_ENDPOINTS)}")
+    logger.info(f"  Integrations: {len(INTEGRATIONS)}")
     logger.info(f"  Telegram alerts: {'enabled' if TELEGRAM_BOT_TOKEN else 'disabled'}")
+    logger.info(f"  History file: {HISTORY_FILE}")
     logger.info("=" * 60)
 
     # Wait for services to stabilize before starting checks
@@ -314,7 +516,15 @@ async def main():
     # Run initial check immediately
     await run_health_check()
 
-    # Then loop
+    # Run health check loop and API server concurrently
+    await asyncio.gather(
+        _health_check_loop(),
+        _run_api_server(),
+    )
+
+
+async def _health_check_loop():
+    """Background loop for periodic health checks."""
     while True:
         await asyncio.sleep(CHECK_INTERVAL)
         try:

@@ -11,6 +11,10 @@ const AGENT_SERVICE_URL =
  *
  * Trigger an SRE agent investigation for a detected health incident.
  * Accepts incident details and constructs an investigation prompt.
+ *
+ * Fire-and-forget: the sre-agent uses SSE streaming, so we kick off the
+ * request and return immediately with the thread_id. The agent run is
+ * recorded server-side and appears on the Agent Runs page.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -38,6 +42,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const resolvedThreadId =
+      thread_id || `incident-${serviceName}-${Date.now()}`;
+
     // Construct an investigation prompt from the incident details
     const alert: Record<string, string> = {
       name: incidentType === "down" ? "ServiceDown" : "ServiceDegraded",
@@ -62,9 +69,12 @@ ${latency_ms ? `Latency: ${latency_ms}ms` : ""}
 
 Please investigate the root cause, check related services in the knowledge graph, and provide a structured report with remediation steps.`;
 
-    // Forward to sre-agent /investigate endpoint
+    // Fire-and-forget to sre-agent SSE endpoint.
+    // We do NOT await the response body because the agent streams via SSE
+    // and the connection stays open until the investigation completes.
+    // The agent run is recorded server-side and visible on Agent Runs page.
     const upstreamUrl = `${AGENT_SERVICE_URL}/investigate`;
-    const upstreamRes = await fetch(upstreamUrl, {
+    fetch(upstreamUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -74,27 +84,19 @@ Please investigate the root cause, check related services in the knowledge graph
       },
       body: JSON.stringify({
         prompt,
-        thread_id: thread_id || `incident-${serviceName}-${Date.now()}`,
+        thread_id: resolvedThreadId,
         alert,
       }),
+    }).catch((fetchErr) => {
+      // Log but don't fail — the investigation may still start
+      console.error("[investigate] Failed to reach sre-agent:", fetchErr);
     });
 
-    if (!upstreamRes.ok) {
-      const errorText = await upstreamRes.text();
-      return NextResponse.json(
-        { error: errorText || `Upstream error: ${upstreamRes.status}` },
-        { status: upstreamRes.status }
-      );
-    }
-
-    // Return the thread ID so the client can connect to the SSE stream
-    const responseBody = await upstreamRes.json().catch(() => ({}));
-
+    // Return immediately with the thread ID
     return NextResponse.json({
       status: "investigation_started",
-      thread_id: thread_id || `incident-${serviceName}-${Date.now()}`,
+      thread_id: resolvedThreadId,
       serviceName,
-      ...responseBody,
     });
   } catch (err: any) {
     const status = err?.status || 502;

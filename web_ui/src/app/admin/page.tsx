@@ -12,6 +12,7 @@ import {
   Users,
   Activity,
   TrendingUp,
+  TrendingDown,
   Clock,
   AlertCircle,
   CheckCircle,
@@ -28,6 +29,7 @@ import {
   RefreshCw,
   Pause,
   Play,
+  History,
 } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 
@@ -92,7 +94,27 @@ interface IntegrationHealth {
   icon: any;
 }
 
+interface HealthUptime {
+  uptime_pct: number | null;
+  total_checks: number;
+  healthy_count: number;
+  window_hours: number;
+}
+
+interface HealthHistoryEntry {
+  timestamp: string;
+  status: string;
+  latency_ms?: number;
+  error?: string;
+}
+
+interface ServiceHealthHistory {
+  uptime: HealthUptime;
+  recent: HealthHistoryEntry[];
+}
+
 const HEALTH_REFRESH_INTERVAL_MS = 30000; // 30 seconds
+const HISTORY_REFRESH_INTERVAL_MS = 300000; // 5 minutes
 
 export default function AdminHomePage() {
   const { identity, error } = useIdentity();
@@ -104,7 +126,10 @@ export default function AdminHomePage() {
   const [healthLoading, setHealthLoading] = useState(false);
   const [healthLastUpdated, setHealthLastUpdated] = useState<Date | null>(null);
   const [healthAutoRefresh, setHealthAutoRefresh] = useState(true);
+  const [healthHistory, setHealthHistory] = useState<Record<string, ServiceHealthHistory>>({});
+  const [historyLoading, setHistoryLoading] = useState(false);
   const healthIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const historyIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Onboarding state - visitors use localStorage only
   const isVisitor = identity?.auth_kind === 'visitor';
@@ -144,6 +169,22 @@ export default function AdminHomePage() {
     }
   }, []);
 
+  // Fetch health history (uptime stats)
+  const fetchHealthHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const res = await fetch('/api/admin/health-history?window_hours=24');
+      if (res.ok) {
+        const data = await res.json();
+        setHealthHistory(data || {});
+      }
+    } catch (err) {
+      console.error('Failed to load health history:', err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!identity?.org_id) return;
 
@@ -167,7 +208,9 @@ export default function AdminHomePage() {
 
     // Initial health fetch
     fetchHealth(identity.org_id);
-  }, [identity?.org_id, fetchHealth]);
+    // Initial health history fetch
+    fetchHealthHistory();
+  }, [identity?.org_id, fetchHealth, fetchHealthHistory]);
 
   // Auto-refresh health data
   useEffect(() => {
@@ -191,6 +234,28 @@ export default function AdminHomePage() {
       }
     };
   }, [identity?.org_id, healthAutoRefresh, fetchHealth]);
+
+  // Auto-refresh health history (every 5 minutes)
+  useEffect(() => {
+    if (!identity?.org_id) {
+      if (historyIntervalRef.current) {
+        clearInterval(historyIntervalRef.current);
+        historyIntervalRef.current = null;
+      }
+      return;
+    }
+
+    historyIntervalRef.current = setInterval(() => {
+      fetchHealthHistory();
+    }, HISTORY_REFRESH_INTERVAL_MS);
+
+    return () => {
+      if (historyIntervalRef.current) {
+        clearInterval(historyIntervalRef.current);
+        historyIntervalRef.current = null;
+      }
+    };
+  }, [identity?.org_id, fetchHealthHistory]);
 
   // Helper to map integration names to icons
   const getIntegrationIcon = (name: string) => {
@@ -602,27 +667,64 @@ export default function AdminHomePage() {
               </div>
               <div className="p-5 space-y-4">
                 <div>
-                  <div className="text-xs font-medium text-stone-500 uppercase mb-2">Services</div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-xs font-medium text-stone-500 uppercase">Services</div>
+                    <div className="flex items-center gap-1 text-[10px] text-stone-400" title="24h uptime from health history">
+                      <History className="w-3 h-3" />
+                      24h uptime
+                    </div>
+                  </div>
                   <div className="space-y-2">
                     {services.length === 0 && !healthLoading && (
                       <div className="text-xs text-stone-400 italic">No health data available</div>
                     )}
-                    {services.map((service) => (
-                      <div key={service.name} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-stone-700 dark:text-stone-300">{service.name}</span>
-                          {service.latency_ms !== undefined && (
-                            <span className="text-[10px] text-stone-400 font-mono">{service.latency_ms}ms</span>
+                    {services.map((service) => {
+                      const history = healthHistory[service.name];
+                      const uptime = history?.uptime;
+                      return (
+                        <div key={service.name}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-stone-700 dark:text-stone-300">{service.name}</span>
+                              {service.latency_ms !== undefined && (
+                                <span className="text-[10px] text-stone-400 font-mono">{service.latency_ms}ms</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {service.error && (
+                                <span className="text-[10px] text-clay" title={service.error}>⚠</span>
+                              )}
+                              {getServiceStatusBadge(service.status)}
+                            </div>
+                          </div>
+                          {uptime && uptime.uptime_pct !== null && (
+                            <div className="mt-1 flex items-center gap-2">
+                              <div className="flex-1 h-1 bg-stone-100 dark:bg-stone-700 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all ${
+                                    uptime.uptime_pct >= 99
+                                      ? 'bg-green-500'
+                                      : uptime.uptime_pct >= 95
+                                      ? 'bg-yellow-500'
+                                      : 'bg-clay'
+                                  }`}
+                                  style={{ width: `${uptime.uptime_pct}%` }}
+                                />
+                              </div>
+                              <span className={`text-[10px] font-mono ${
+                                uptime.uptime_pct >= 99
+                                  ? 'text-green-600 dark:text-green-400'
+                                  : uptime.uptime_pct >= 95
+                                  ? 'text-yellow-600 dark:text-yellow-400'
+                                  : 'text-clay'
+                              }`}>
+                                {uptime.uptime_pct}%
+                              </span>
+                            </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-2">
-                          {service.error && (
-                            <span className="text-[10px] text-clay" title={service.error}>⚠</span>
-                          )}
-                          {getServiceStatusBadge(service.status)}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 

@@ -224,6 +224,7 @@ services:
     environment:
       - CONFIG_SERVICE_URL=http://config-service:8080
       - AGENT_SERVICE_URL=http://sre-agent:8000
+      - HEALTH_MONITOR_URL=http://health-monitor:8090
       - WEB_UI_COOKIE_SECURE=0
       - HOSTNAME=0.0.0.0
       - PORT=3000

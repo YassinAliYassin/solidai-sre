@@ -1,0 +1,27 @@
+# LiteLLM Proxy Configuration
+# Auto-generated — edit via .env (LLM_PROVIDER, LLM_MODEL) then run make dev
+#
+# Model routing: requests for any model (*) are tried against each entry
+# in order. If the primary fails, litellm falls through to the next entry.
+#
+# Primary:   openrouter/owl-alpha  (free, 1M context, OpenRouter)
+# Fallback1: openrouter/free       (random free model, $0 cost)
+# Fallback2: openrouter/auto       (router picks best available model)
+
+model_list:
+  # Primary model
+  - model_name: "*"
+    litellm_params:
+      model: openrouter/owl-alpha
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  # Fallback 1: OpenRouter free model router (random free model, $0 cost)
+  - model_name: "*"
+    litellm_params:
+      model: openrouter/free
+      api_key: os.environ/OPENROUTER_API_KEY
+
+litellm_settings:
+  drop_params: true
+  num_retries: 2
+  request_timeout: 300

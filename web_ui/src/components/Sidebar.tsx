@@ -15,6 +15,7 @@ import {
   Cog,
   LayoutDashboard,
   Key,
+  Activity,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { LogoFull } from './Logo';
@@ -37,6 +38,7 @@ const teamNavigation = [
 // Navigation for admin users
 const adminNavigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+  { name: 'Incidents', href: '/incidents', icon: Activity },
   { name: 'Org Tree', href: '/admin/org-tree', icon: Network },
   { name: 'Org Configurations', href: '/admin/config', icon: Cog },
   { name: 'Token Management', href: '/admin/token-management', icon: Key },

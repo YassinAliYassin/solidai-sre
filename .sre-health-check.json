@@ -1,0 +1,266 @@
+{
+  "git_status": {
+    "cmd": "git status --short",
+    "returncode": 0,
+    "stdout": "?? fpcc_update.sh\n",
+    "stderr": ""
+  },
+  "docker_ps": {
+    "cmd": "docker ps --filter \"label=com.docker.compose.project=solidai-sre\" --format \"table {{.Names}}\t{{.Status}}\t{{.Ports}}\"",
+    "returncode": 0,
+    "stdout": "NAMES                        STATUS                 PORTS\nsolidai-sre-sre-agent        Up 2 hours (healthy)   0.0.0.0:8001->8000/tcp, [::]:8001->8000/tcp\nsolidai-sre-litellm          Up 2 hours (healthy)   0.0.0.0:4001->4000/tcp, [::]:4001->4000/tcp\nsolidai-sre-web-ui           Up 2 hours             0.0.0.0:3002->3000/tcp, [::]:3002->3000/tcp\nsolidai-sre-config-service   Up 2 hours (healthy)   0.0.0.0:8081->8080/tcp, [::]:8081->8080/tcp\nsolidai-sre-postgres         Up 2 hours (healthy)   5432/tcp\nsolidai-sre-neo4j            Up 2 hours (healthy)   7473-7474/tcp, 7687/tcp\n",
+    "stderr": ""
+  },
+  "pm2": {
+    "cmd": "pm2 list 2>/dev/null || true",
+    "returncode": 0,
+    "stdout": "\u250c\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n\u2502 id \u2502 name      \u2502 namespace   \u2502 version \u2502 mode    \u2502 pid      \u2502 uptime \u2502 \u21ba    \u2502 status    \u2502 cpu      \u2502 mem      \u2502 user     \u2502 watching \u2502\n\u2514\u2500\u2500\u2500\u2500\u2534\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2534\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2534\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2534\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2534\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2534\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2534\u2500\u2500\u2500\u2500\u2500\u2500\u2534\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2534\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2534\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2534\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2534\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518\n",
+    "stderr": ""
+  },
+  "sre_agent_health": {
+    "url": "http://localhost:8001/health",
+    "http_code": 0,
+    "body": {
+      "status": "healthy",
+      "mode": "langgraph",
+      "active_sessions": 0
+    },
+    "error": ""
+  },
+  "sre_memory_stats": {
+    "url": "http://localhost:8001/memory/stats",
+    "http_code": 0,
+    "body": {
+      "total_episodes": 0,
+      "resolved_episodes": 0,
+      "unresolved_episodes": 0,
+      "strategies_count": 0
+    },
+    "error": ""
+  },
+  "litellm_health": {
+    "url": "http://localhost:4001/health",
+    "http_code": 0,
+    "body": {
+      "raw": "key_user_id\":null,\"user_api_key_org_id\":null,\"user_api_key_team_alias\":\"litellm-internal-health-check\",\"user_api_key_end_user_id\":null,\"user_api_key_user_email\":null,\"user_api_key_request_route\":null,\"user_api_key_budget_reset_at\":null,\"user_api_key_auth_metadata\":{},\"user_api_key\":\"litellm-internal-health-check\",\"agent_id\":null,\"user_api_end_user_max_budget\":null,\"user_api_key_auth\":{\"token\":\"litellm-internal-health-check\",\"key_name\":null,\"key_alias\":\"litellm-internal-health-check\",\"spend\":0.0,"
+    },
+    "error": ""
+  },
+  "litellm_readiness": {
+    "url": "http://localhost:4001/health/readiness",
+    "http_code": 0,
+    "body": {
+      "status": "healthy",
+      "db": "Not connected",
+      "cache": null,
+      "litellm_version": "1.82.6",
+      "success_callbacks": [
+        "sync_deployment_callback_on_success",
+        "SkillsInjectionHook",
+        "_PROXY_VirtualKeyModelMaxBudgetLimiter",
+        "_PROXY_MaxBudgetLimiter",
+        "_PROXY_MaxParallelRequestsHandler_v3",
+        "_PROXY_CacheControlCheck",
+        "ResponsesIDSecurity",
+        "_PROXY_MaxIterationsHandler",
+        "_PROXY_MaxBudgetPerSessionHandler",
+        "_PROXY_LiteLLMManagedFiles",
+        "_PROXY_LiteLLMManagedVectorStores",
+        "ServiceLogging"
+      ],
+      "use_aiohttp_transport": true,
+      "log_level": "WARNING",
+      "is_detailed_debug": false
+    },
+    "error": ""
+  },
+  "config_health": {
+    "url": "http://localhost:8081/health",
+    "http_code": 0,
+    "body": {
+      "status": "ok"
+    },
+    "error": ""
+  },
+  "web_api_health": {
+    "url": "http://localhost:3002/api/health",
+    "http_code": 0,
+    "body": {
+      "status": "ok"
+    },
+    "error": ""
+  },
+  "gateway_root": {
+    "url": "http://localhost:18789",
+    "http_code": 0,
+    "body": {
+      "raw": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <title>Solid Solutions | AI & Digital Infrastructure</title>\n    <meta name=\"description\" content=\"Solid Solutions provides AI-powered digital infrastructure, automation, and custom software solutions for businesses in Africa and beyond.\" />\n    <meta name=\"keywords\" content=\"AI, automation, digital infrastructure, software development, custom so"
+    },
+    "error": ""
+  },
+  "gateway_health": {
+    "url": "http://localhost:18789/health",
+    "http_code": 0,
+    "body": {
+      "status": "ok",
+      "sectorAgents": [
+        "agriculture",
+        "fintech",
+        "health",
+        "education",
+        "energy",
+        "governance",
+        "retail",
+        "logistics",
+        "events"
+      ],
+      "channels": [
+        "telegram",
+        "webchat"
+      ]
+    },
+    "error": ""
+  },
+  "litellm_chat_ping": {
+    "rc": 0,
+    "body": {
+      "error": {
+        "message": "Invalid JSON payload: unexpected character: line 1 column 2 (char 1)",
+        "type": "invalid_request_error",
+        "param": "request_body",
+        "code": "400"
+      }
+    },
+    "err": ""
+  },
+  "df_root": {
+    "cmd": "df -h / | tail -1",
+    "returncode": 0,
+    "stdout": "/dev/sda2       458G  338G   97G  78% /\n",
+    "stderr": ""
+  },
+  "free": {
+    "cmd": "free -h",
+    "returncode": 0,
+    "stdout": "               total        used        free      shared  buff/cache   available\nMem:            15Gi       9.0Gi       392Mi       1.8Gi       8.2Gi       6.5Gi\nSwap:          2.0Gi       4.0Ki       2.0Gi\n",
+    "stderr": ""
+  },
+  "uptime": {
+    "cmd": "uptime",
+    "returncode": 0,
+    "stdout": " 22:27:17 up  1:36,  1 user,  load average: 11.16, 9.07, 12.52\n",
+    "stderr": ""
+  },
+  "docker_stats": {
+    "cmd": "docker stats --no-stream --format \"table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\"",
+    "returncode": 0,
+    "stdout": "NAME                         CPU %     MEM USAGE / LIMIT     MEM %\noracle-db                    4.74%     2.262GiB / 15.53GiB   14.57%\nsolidai-sre-sre-agent        56.38%    80.39MiB / 2GiB       3.93%\nsolidai-sre-litellm          0.28%     559MiB / 15.53GiB     3.52%\nsolidai-sre-web-ui           0.00%     41.91MiB / 512MiB     8.19%\nsolidai-sre-config-service   0.35%     105.9MiB / 15.53GiB   0.67%\nsolidai-sre-postgres         0.01%     35.17MiB / 15.53GiB   0.22%\nsolidai-sre-neo4j            1.11%     500.3MiB / 15.53GiB   3.15%\n",
+    "stderr": ""
+  },
+  "external_sites": [
+    {
+      "site": "https://solidsolutions.africa",
+      "host": "solidsolutions.africa has address 102.208.231.11",
+      "http": {
+        "url": "https://solidsolutions.africa",
+        "code": "200",
+        "rc": 0,
+        "err": ""
+      }
+    },
+    {
+      "site": "https://solidai.africa",
+      "host": "",
+      "http": {
+        "url": "https://solidai.africa",
+        "code": "000",
+        "rc": 6,
+        "err": "curl: (6) Could not resolve host: solidai.africa"
+      }
+    },
+    {
+      "site": "https://fresh-people.co.za",
+      "host": "fresh-people.co.za has address 102.208.231.54",
+      "http": {
+        "url": "https://fresh-people.co.za",
+        "code": "200",
+        "rc": 0,
+        "err": ""
+      }
+    }
+  ],
+  "logs": {
+    "sre-agent": {
+      "cmd": "docker logs solidai-sre-sre-agent --tail=120 2>&1 | grep -iE '(error|warn|fail|alert|incident|critical|oom|killed)' | tail -40 || true",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "litellm": {
+      "cmd": "docker logs solidai-sre-litellm --tail=120 2>&1 | grep -iE '(error|warn|fail|alert|incident|critical|oom|killed)' | tail -40 || true",
+      "returncode": 0,
+      "stdout": "\u001b[92m20:27:17 - LiteLLM Proxy:ERROR\u001b[0m: http_parsing_utils.py:73 - Invalid JSON payload received: unexpected character: line 1 column 2 (char 1)\n\u001b[92m20:27:17 - LiteLLM Proxy:ERROR\u001b[0m: http_parsing_utils.py:89 - Invalid JSON payload received: \n",
+      "stderr": ""
+    },
+    "config-service": {
+      "cmd": "docker logs solidai-sre-config-service --tail=120 2>&1 | grep -iE '(error|warn|fail|alert|incident|critical|oom|killed)' | tail -40 || true",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "web-ui": {
+      "cmd": "docker logs solidai-sre-web-ui --tail=120 2>&1 | grep -iE '(error|warn|fail|alert|incident|critical|oom|killed)' | tail -40 || true",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "postgres": {
+      "cmd": "docker logs solidai-sre-postgres --tail=120 2>&1 | grep -iE '(error|warn|fail|alert|incident|critical|oom|killed)' | tail -40 || true",
+      "returncode": 0,
+      "stdout": "2026-06-08 18:17:21.458 UTC [3636] ERROR:  column sso_configs.provider_type does not exist at character 94\n2026-06-08 18:36:51.558 UTC [5250] ERROR:  column sso_configs.provider_type does not exist at character 94\n2026-06-09 19:39:15.598 UTC [4009] ERROR:  column \"created_at\" does not exist at character 70\n2026-06-09 19:40:38.294 UTC [4130] ERROR:  column \"severity\" does not exist at character 20\n2026-06-09 19:40:38.294 UTC [4130] STATEMENT:  select id, status, severity, alert_title, started_at, updated_at from agent_runs order by started_at desc nulls last limit 10;\n2026-06-09 19:40:38.294 UTC [4130] ERROR:  column \"status\" does not exist at character 12\n2026-06-09 19:40:38.295 UTC [4130] ERROR:  column \"id\" does not exist at character 8\n",
+      "stderr": ""
+    },
+    "neo4j": {
+      "cmd": "docker logs solidai-sre-neo4j --tail=120 2>&1 | grep -iE '(error|warn|fail|alert|incident|critical|oom|killed)' | tail -40 || true",
+      "returncode": 0,
+      "stdout": "2026-06-06 03:33:07.757+0000 WARN  [bolt-0] The client is unauthorized due to authentication failure.\n2026-06-06 14:05:09.442+0000 WARN  [bolt-1] The client is unauthorized due to authentication failure.\n2026-06-06 14:05:30.998+0000 WARN  [bolt-2] The client is unauthorized due to authentication failure.\n2026-06-06 17:32:20.369+0000 WARN  [bolt-5] The client is unauthorized due to authentication failure.\n2026-06-07 13:07:04.867+0000 WARN  [bolt-0] The client is unauthorized due to authentication failure.\n2026-06-08 15:02:26.409+0000 WARN  [bolt-0] The client is unauthorized due to authentication failure.\n",
+      "stderr": ""
+    }
+  },
+  "pg_tables": {
+    "cmd": "docker exec solidai-sre-postgres psql -U solidai -d solidai_sre -tAc \"SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name;\"",
+    "returncode": 0,
+    "stdout": "agent_feedback\nagent_runs\nagent_sessions\nagent_tool_calls\nalembic_version\nconfig_change_history\nconfig_field_definitions\nconfig_validation_status\nconversation_mappings\ndependency_discovery_runs\ngithub_installations\nimpersonation_jtis\nintegration_schemas\nintegrations\ninvestigation_episodes\ninvestigation_strategies\nk8s_clusters\nknowledge_documents\nknowledge_edges\nmeeting_data\nnode_configurations\norchestrator_provisioning_runs\norg_admin_tokens\norg_nodes\norg_settings\npending_config_changes\npending_knowledge_teachings\npending_remediations\nrecall_bots\nrecall_transcript_segments\nscheduled_jobs\nsecurity_policies\nservice_dependencies\nslack_apps\nslack_installations\nslack_session_cache\nsso_configs\nteam_output_configs\nteam_tokens\ntemplate_analytics\ntemplate_applications\ntemplates\ntoken_audit\nvisitor_emails\nvisitor_sessions\n",
+    "stderr": ""
+  },
+  "agent_runs_recent": {
+    "cmd": "docker exec solidai-sre-postgres psql -U solidai -d solidai_sre -tAc \"SELECT id, status, started_at, error_message FROM agent_runs ORDER BY started_at DESC NULLS LAST LIMIT 5;\"",
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "pending_remediations": {
+    "cmd": "docker exec solidai-sre-postgres psql -U solidai -d solidai_sre -tAc \"SELECT id, status, requested_at, service_name, action_type FROM pending_remediations ORDER BY requested_at DESC NULLS LAST LIMIT 10;\"",
+    "returncode": 1,
+    "stdout": "",
+    "stderr": "ERROR:  column \"id\" does not exist\nLINE 1: SELECT id, status, requested_at, service_name, action_type F...\n               ^\n"
+  },
+  "investigation_episodes_recent": {
+    "cmd": "docker exec solidai-sre-postgres psql -U solidai -d solidai_sre -tAc \"SELECT id, severity, status, created_at, alert_description FROM investigation_episodes ORDER BY created_at DESC NULLS LAST LIMIT 5;\"",
+    "returncode": 1,
+    "stdout": "",
+    "stderr": "ERROR:  column \"status\" does not exist\nLINE 1: SELECT id, severity, status, created_at, alert_description F...\n                             ^\n"
+  },
+  "env_key_summary": {
+    "cmd": "python3 - <<'PY'\nfrom pathlib import Path\nenv={}\np=Path('.env')\nif p.exists():\n    for line in p.read_text(errors='ignore').splitlines():\n        if '=' in line and not line.strip().startswith('#'):\n            k,v=line.split('=',1); env[k.strip()]=v.strip().strip('\"\\'')\nkey=env.get('OPENROUTER_API_KEY','')\nprint(json.dumps({'key_present': bool(key), 'key_length': len(key), 'key_prefix_ok': key.startswith('sk-or-v1-'), 'contains_literal_ellipsis': '...' in key}))\nPY",
+    "returncode": 1,
+    "stdout": "",
+    "stderr": "Traceback (most recent call last):\n  File \"<stdin>\", line 9, in <module>\nNameError: name 'json' is not defined\n"
+  },
+  "container_key_summary": {
+    "cmd": "docker exec solidai-sre-litellm sh -c 'printenv OPENROUTER_API_KEY' 2>/dev/null | python3 -c 'import sys,json; k=sys.stdin.read().strip(); print(json.dumps({\"container_key_present\": bool(k), \"container_key_length\": len(k), \"container_key_prefix_ok\": k.startswith(\"sk-or-v1-\"), \"contains_literal_ellipsis\": \"...\" in k}))' || true",
+    "returncode": 0,
+    "stdout": "{\"container_key_present\": true, \"container_key_length\": 73, \"container_key_prefix_ok\": true, \"contains_literal_ellipsis\": false}\n",
+    "stderr": ""
+  }
+}

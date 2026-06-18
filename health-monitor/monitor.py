@@ -447,7 +447,13 @@ async def run_health_check():
 from fastapi import FastAPI as _FastAPI
 from fastapi.responses import JSONResponse as _JSONResponse
 
-_api_app = _FastAPI(title="SolidAI SRE Health Monitor API", version="0.2.0")
+_api_app = _FastAPI(title="SolidAI SRE Health Monitor API", version="0.3.0")
+
+
+@_api_app.get("/health")
+async def health_check():
+    """Health check endpoint for Docker and load balancers."""
+    return _JSONResponse({"status": "healthy", "service": "health-monitor"})
 
 
 @_api_app.get("/api/health-history")

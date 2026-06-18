@@ -75,10 +75,16 @@ cat > "$OUTPUT" <<EOF
 # See litellm_config.example.yaml for reference.
 
 model_list:
+  # Primary model
   - model_name: "*"
     litellm_params:
       model: $LLM_MODEL
       api_key: os.environ/$API_KEY_VAR
+  # Fallback: OpenRouter free model router (random free model, \$0 cost)
+  - model_name: "*"
+    litellm_params:
+      model: openrouter/free
+      api_key: os.environ/OPENROUTER_API_KEY
 
 litellm_settings:
   drop_params: true

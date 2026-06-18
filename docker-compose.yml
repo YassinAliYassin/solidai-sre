@@ -249,6 +249,36 @@ services:
       - app_network
       - default
 
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Health Monitor — periodic health checks + Telegram alerts
+  # ─────────────────────────────────────────────────────────────────────────────
+  health-monitor:
+    build:
+      context: ./health-monitor
+      dockerfile: Dockerfile
+    container_name: solidai-sre-health-monitor
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - CHECK_INTERVAL=${CHECK_INTERVAL:-60}
+      - ALERT_COOLDOWN=${ALERT_COOLDOWN:-300}
+      - STARTUP_DELAY=${STARTUP_DELAY:-15}
+    depends_on:
+      - config-service
+      - sre-agent
+      - web-ui
+    mem_limit: 128m
+    cpus: 0.25
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    networks:
+      - app_network
+      - default
+
   # ─────────────────────────────────────────────────────────────────────
   # Slack Bot — connects Slack to SRE Agent
   # Will exit gracefully if SLACK_BOT_TOKEN and SLACK_APP_TOKEN are not configured

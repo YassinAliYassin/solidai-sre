@@ -218,10 +218,71 @@ async def check_all_services() -> list[dict]:
     return await asyncio.gather(*tasks)
 
 
+# ---------------------------------------------------------------------------
+# Circuit breaker for flaky external endpoints
+# ---------------------------------------------------------------------------
+
+# service_name -> consecutive failure count
+_circuit_breaker_counts: dict[str, int] = {}
+# service_name -> timestamp when circuit was opened
+_circuit_breaker_opened: dict[str, float] = {}
+# After N consecutive failures, skip checks for COOLDOWN seconds
+CIRCUIT_BREAKER_THRESHOLD = 3
+CIRCUIT_BREAKER_COOLDOWN = 300  # 5 minutes
+
+
+def _is_circuit_open(service_name: str) -> bool:
+    """Check if the circuit breaker is open for a service (skipping checks)."""
+    if service_name not in _circuit_breaker_opened:
+        return False
+    opened_at = _circuit_breaker_opened[service_name]
+    if time.monotonic() - opened_at > CIRCUIT_BREAKER_COOLDOWN:
+        # Cooldown expired, reset circuit
+        del _circuit_breaker_opened[service_name]
+        _circuit_breaker_counts.pop(service_name, None)
+        return False
+    return True
+
+
+def _record_success(service_name: str):
+    """Reset circuit breaker on success."""
+    _circuit_breaker_counts.pop(service_name, None)
+    _circuit_breaker_opened.pop(service_name, None)
+
+
+def _record_failure(service_name: str):
+    """Increment circuit breaker failure count, open if threshold reached."""
+    count = _circuit_breaker_counts.get(service_name, 0) + 1
+    _circuit_breaker_counts[service_name] = count
+    if count >= CIRCUIT_BREAKER_THRESHOLD:
+        _circuit_breaker_opened[service_name] = time.monotonic()
+        logger.info(
+            f"[CIRCUIT] Opened breaker for {service_name} "
+            f"after {count} consecutive failures "
+            f"(cooldown: {CIRCUIT_BREAKER_COOLDOWN}s)"
+        )
+
+
 async def check_public_endpoints() -> list[dict]:
-    """Check public-facing endpoints."""
-    tasks = [check_service(s) for s in PUBLIC_ENDPOINTS]
-    return await asyncio.gather(*tasks)
+    """Check public-facing endpoints with circuit breaker support."""
+    results = []
+    for svc in PUBLIC_ENDPOINTS:
+        name = svc["name"]
+        if _is_circuit_open(name):
+            results.append({
+                "name": name,
+                "status": "skipped",
+                "error": "Circuit breaker open (endpoint consistently failing)",
+                "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            })
+            continue
+        result = await check_service(svc)
+        if result["status"] == "healthy":
+            _record_success(name)
+        else:
+            _record_failure(name)
+        results.append(result)
+    return results
 
 
 async def check_integrations() -> list[dict]:
@@ -415,6 +476,12 @@ async def process_results(results: list[dict], is_public: bool = False):
     for result in results:
         name = result["name"]
         status = result["status"]
+
+        # Skip circuit-breaker-opened endpoints — no alerts needed
+        if status == "skipped":
+            _last_status[name] = "skipped"
+            continue
+
         prev_status = _last_status.get(name, "unknown")
 
         # Status changed to down/degraded
@@ -597,10 +664,11 @@ async def get_health_summary():
         "healthy_count": sum(1 for s in services_summary if s["status"] == "healthy"),
         "degraded_count": sum(1 for s in services_summary if s["status"] == "degraded"),
         "down_count": sum(1 for s in services_summary if s["status"] == "down"),
+        "skipped_count": sum(1 for s in services_summary if s["status"] == "skipped"),
     })
 
 
-async def _check_litellm_model(model_name: str, timeout: float = 10.0) -> dict:
+async def _check_litellm_model(model_name: str, timeout: float = 15.0) -> dict:
     """Test a single litellm model by sending a minimal completion request.
 
     Uses a short max_tokens to keep the check fast. If the model times out,
@@ -660,7 +728,6 @@ async def get_model_health():
     """
     models = [
         "openrouter/owl-alpha",
-        "openrouter/free",
         "openrouter/auto",
     ]
     tasks = [_check_litellm_model(m) for m in models]

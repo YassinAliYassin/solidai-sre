@@ -57,8 +57,8 @@ SERVICES = [
     {
         "name": "LiteLLM Proxy",
         "type": "http",
-        "url": "http://litellm:4000/health",
-        "timeout": 10.0,
+        "url": "http://litellm:4000/health/readiness",
+        "timeout": 5.0,
     },
     {
         "name": "SRE Agent",

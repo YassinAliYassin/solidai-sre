@@ -126,8 +126,11 @@ async def system_status():
         # Strip /v1 suffix if present — health endpoint is at root, not under /v1
         litellm_root = litellm_base.rstrip("/").removesuffix("/v1")
         try:
-            async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
-                resp = await client.get(f"{litellm_root}/health")
+            # Use /health/readiness instead of /health — the full /health endpoint
+            # tries to ping all configured models (including fallbacks) and hangs
+            # when any model (e.g. openrouter/free) is unreachable.
+            async with httpx.AsyncClient(timeout=httpx.Timeout(5.0)) as client:
+                resp = await client.get(f"{litellm_root}/health/readiness")
                 services["litellm"] = {
                     "status": "healthy" if resp.status_code == 200 else "degraded",
                     "latency_ms": int(resp.elapsed.total_seconds() * 1000),

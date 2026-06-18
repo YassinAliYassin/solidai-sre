@@ -304,6 +304,61 @@ def get_uptime_stats(history: dict, service_name: str, window_hours: int = 24) -
     }
 
 
+def _percentile(sorted_vals: list[float], pct: float) -> float:
+    """Compute the given percentile from a sorted list using linear interpolation."""
+    if not sorted_vals:
+        return 0.0
+    k = (len(sorted_vals) - 1) * (pct / 100.0)
+    f = int(k)
+    c = f + 1
+    if c >= len(sorted_vals):
+        return sorted_vals[-1]
+    d0 = sorted_vals[f] * (c - k)
+    d1 = sorted_vals[c] * (k - f)
+    return round(d0 + d1, 1)
+
+
+def get_latency_stats(history: dict, service_name: str, window_hours: int = 24) -> dict:
+    """Calculate latency statistics for a service over a time window.
+
+    Returns avg, min, max, p50, p95, p99 for entries that have latency_ms.
+    Only includes healthy-status entries (failed checks don't have meaningful latency).
+    """
+    entries = history.get(service_name, [])
+    if not entries:
+        return {}
+
+    cutoff = (
+        datetime.datetime.now(datetime.timezone.utc)
+        - datetime.timedelta(hours=window_hours)
+    ).isoformat()
+
+    latencies = [
+        e["latency_ms"]
+        for e in entries
+        if e["timestamp"] >= cutoff
+        and e.get("status") == "healthy"
+        and e.get("latency_ms") is not None
+    ]
+
+    if not latencies:
+        return {}
+
+    latencies_sorted = sorted(latencies)
+    n = len(latencies_sorted)
+
+    return {
+        "count": n,
+        "avg_ms": round(sum(latencies_sorted) / n, 1),
+        "min_ms": latencies_sorted[0],
+        "max_ms": latencies_sorted[-1],
+        "p50_ms": _percentile(latencies_sorted, 50),
+        "p95_ms": _percentile(latencies_sorted, 95),
+        "p99_ms": _percentile(latencies_sorted, 99),
+        "window_hours": window_hours,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Telegram alerting
 # ---------------------------------------------------------------------------
@@ -458,16 +513,19 @@ async def health_check():
 
 @_api_app.get("/api/health-history")
 async def get_health_history(window_hours: int = 24):
-    """Get health history with uptime stats for all services."""
+    """Get health history with uptime and latency stats for all services."""
     history = _load_history()
     response = {}
     for name, entries in history.items():
         stats = get_uptime_stats(history, name, window_hours)
+        latency = get_latency_stats(history, name, window_hours)
         recent_entries = entries[-20:]  # Last 20 entries for detail
         response[name] = {
             "uptime": stats,
             "recent": recent_entries,
         }
+        if latency:
+            response[name]["latency"] = latency
     return _JSONResponse(response)
 
 
@@ -480,10 +538,143 @@ async def get_service_history(service_name: str, window_hours: int = 24):
             {"error": f"No history for service: {service_name}"}, status_code=404
         )
     stats = get_uptime_stats(history, service_name, window_hours)
-    return _JSONResponse({
+    latency = get_latency_stats(history, service_name, window_hours)
+    result = {
         "name": service_name,
         "uptime": stats,
         "history": history[service_name][-100:],  # Last 100 entries
+    }
+    if latency:
+        result["latency"] = latency
+    return _JSONResponse(result)
+
+
+@_api_app.get("/api/health-summary")
+async def get_health_summary():
+    """Get a dashboard-friendly summary of all service health.
+
+    Returns current status, uptime stats, and latency percentiles
+    for all monitored services — designed for dashboard consumption.
+    """
+    history = _load_history()
+    services_summary = []
+    all_healthy = True
+    any_down = False
+
+    # Build a combined list of all monitored names
+    all_names = set(history.keys())
+
+    for name in sorted(all_names):
+        uptime = get_uptime_stats(history, name, 24)
+        latency = get_latency_stats(history, name, 24)
+        current_status = _last_status.get(name, "unknown")
+
+        if current_status in ("down", "degraded"):
+            all_healthy = False
+        if current_status == "down":
+            any_down = True
+
+        svc = {
+            "name": name,
+            "status": current_status,
+            "uptime_24h": uptime.get("uptime_pct"),
+        }
+        if latency:
+            svc["latency"] = {
+                "avg_ms": latency["avg_ms"],
+                "p95_ms": latency["p95_ms"],
+                "p99_ms": latency["p99_ms"],
+            }
+        services_summary.append(svc)
+
+    overall = "healthy" if all_healthy else ("down" if any_down else "degraded")
+
+    return _JSONResponse({
+        "status": overall,
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "services": services_summary,
+        "total_services": len(services_summary),
+        "healthy_count": sum(1 for s in services_summary if s["status"] == "healthy"),
+        "degraded_count": sum(1 for s in services_summary if s["status"] == "degraded"),
+        "down_count": sum(1 for s in services_summary if s["status"] == "down"),
+    })
+
+
+async def _check_litellm_model(model_name: str, timeout: float = 10.0) -> dict:
+    """Test a single litellm model by sending a minimal completion request.
+
+    Uses a short max_tokens to keep the check fast. If the model times out,
+    reports it as degraded rather than waiting indefinitely.
+    """
+    litellm_url = "http://litellm:4000"
+    api_key = os.getenv("OPENROUTER_API_KEY", "")
+    if not api_key:
+        return {"model": model_name, "status": "not_configured", "error": "OPENROUTER_API_KEY not set"}
+    try:
+        start = time.monotonic()
+        async with httpx.AsyncClient(timeout=httpx.Timeout(timeout)) as client:
+            resp = await client.post(
+                f"{litellm_url}/v1/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}"},
+                json={
+                    "model": model_name,
+                    "messages": [{"role": "user", "content": "OK"}],
+                    "max_tokens": 3,
+                },
+            )
+        latency_ms = int((time.monotonic() - start) * 1000)
+        if resp.status_code == 200:
+            return {"model": model_name, "status": "healthy", "latency_ms": latency_ms}
+        # 429 rate limit or 503 service unavailable = degraded, not unreachable
+        if resp.status_code in (429, 503, 502):
+            return {
+                "model": model_name,
+                "status": "degraded",
+                "latency_ms": latency_ms,
+                "http_status": resp.status_code,
+                "error": resp.text[:200],
+            }
+        return {
+            "model": model_name,
+            "status": "degraded",
+            "latency_ms": latency_ms,
+            "http_status": resp.status_code,
+            "error": resp.text[:200],
+        }
+    except httpx.TimeoutException:
+        return {
+            "model": model_name,
+            "status": "degraded",
+            "error": f"Request timed out after {timeout}s (provider may be slow)",
+        }
+    except Exception as e:
+        return {"model": model_name, "status": "unreachable", "error": str(e)[:200]}
+
+
+@_api_app.get("/api/model-health")
+async def get_model_health():
+    """Check health of all configured litellm models.
+
+    Tests each model with a minimal completion request.
+    Useful for detecting when fallback models go down.
+    """
+    models = [
+        "openrouter/owl-alpha",
+        "openrouter/free",
+        "openrouter/auto",
+    ]
+    tasks = [_check_litellm_model(m) for m in models]
+    results = await asyncio.gather(*tasks)
+
+    all_healthy = all(r["status"] == "healthy" for r in results)
+    any_healthy = any(r["status"] == "healthy" for r in results)
+
+    overall = "healthy" if all_healthy else ("degraded" if any_healthy else "all_down")
+
+    return _JSONResponse({
+        "status": overall,
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "models": results,
     })
 
 

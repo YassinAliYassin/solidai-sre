@@ -759,7 +759,7 @@ _model_health_task: Optional[asyncio.Task] = None
 # NOTE: These are OpenRouter model IDs (without "openrouter/" prefix) since
 # _check_litellm_model sends directly to OpenRouter's API, not through litellm.
 _MODEL_LIST = [
-    "openrouter/owl-alpha",                                 # llm-primary
+    "owl-alpha",                                            # llm-primary
     "openai/gpt-oss-20b:free",                              # llm-fallback1
     "cohere/north-mini-code:free",                            # llm-fallback2
     "openai/gpt-oss-120b:free",                             # llm-fallback3

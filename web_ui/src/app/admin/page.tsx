@@ -82,7 +82,7 @@ interface PendingItems {
 
 interface ServiceHealth {
   name: string;
-  status: 'healthy' | 'degraded' | 'down';
+  status: 'healthy' | 'degraded' | 'down' | 'skipped';
   lastCheck: string;
   latency_ms?: number;
   error?: string;
@@ -379,6 +379,13 @@ export default function AdminHomePage() {
           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-clay-light/15 text-clay-dark dark:bg-red-900/30 dark:text-clay-light">
             <XCircle className="w-3 h-3" />
             Down
+          </span>
+        );
+      case 'skipped':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-400">
+            <Pause className="w-3 h-3" />
+            Skipped
           </span>
         );
     }

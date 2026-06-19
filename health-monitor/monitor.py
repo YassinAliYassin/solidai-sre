@@ -668,14 +668,16 @@ async def get_health_summary():
     })
 
 
-async def _check_litellm_model(model_name: str, timeout: float = 25.0) -> dict:
+async def _check_litellm_model(model_name: str, timeout: float = 45.0) -> dict:
     """Test a single litellm model by sending a minimal completion request.
 
     Uses a short max_tokens to keep the check fast. If the model times out,
     reports it as degraded rather than waiting indefinitely.
 
-    Note: timeout is 25s because OpenRouter can take 15-20s from some VPS
-    network locations. The litellm proxy itself adds latency on top.
+    Note: timeout is 45s because OpenRouter can take 15-20s from some VPS
+    network locations. The litellm proxy adds overhead on top, and fallback
+    chains can add additional latency. 45s ensures we don't falsely report
+    healthy models as down during transient network slowdowns.
     """
     litellm_url = "http://litellm:4000"
     api_key = os.getenv("OPENROUTER_API_KEY", "")

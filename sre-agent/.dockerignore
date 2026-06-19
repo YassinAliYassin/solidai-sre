@@ -34,10 +34,6 @@ env/
 *.md
 !README.md
 
-# Tests
-tests/
-*.test.py
-
 # Kubernetes
 k8s/
 

@@ -26,6 +26,10 @@ COPY nodes/ nodes/
 COPY langgraph.json .
 COPY memory/ memory/
 COPY tools/ tools/
+COPY tests/ tests/
+
+# Install pytest for running tests in-container
+RUN uv pip install --system pytest pytest-asyncio
 
 # Create non-root user
 RUN useradd -m -u 1000 agent && \

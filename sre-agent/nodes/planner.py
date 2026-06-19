@@ -164,6 +164,12 @@ def planner(state: dict) -> dict:
             hypotheses = [h.model_dump() for h in plan_obj.hypotheses]
             selected = [a for a in plan_obj.selected_agents if a in available_agents]
             reasoning = plan_obj.reasoning
+            # Validate: if structured output returned empty results, fall back
+            if not hypotheses or not selected:
+                raise ValueError(
+                    f"Structured output returned empty results "
+                    f"(hypotheses={len(hypotheses)}, selected={len(selected)})"
+                )
             logger.info("[PLANNER] Used structured output successfully")
         except Exception as struct_err:
             # Fallback: unstructured call with manual JSON parsing

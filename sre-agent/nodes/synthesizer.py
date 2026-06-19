@@ -85,6 +85,11 @@ def synthesizer(state: dict) -> dict:
             llm_structured = llm.with_structured_output(SynthesisDecision)
             decision = llm_structured.invoke(msgs, config=run_config)
             synthesis = decision.model_dump()
+            # Validate: structured output must return a real dict
+            if not isinstance(synthesis, dict):
+                raise ValueError(
+                    f"Structured output returned {type(synthesis).__name__}, expected dict"
+                )
             logger.info("[SYNTHESIZER] Used structured output successfully")
         except Exception as struct_err:
             # Fallback: unstructured call with manual JSON parsing

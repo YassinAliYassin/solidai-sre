@@ -96,15 +96,19 @@ interface IntegrationHealth {
 
 interface LitellmModelHealth {
   model: string;
+  status: 'healthy' | 'degraded' | 'no_credits' | 'timeout' | 'unreachable' | 'not_configured';
   litellmProxy?: boolean;
+  latency_ms?: number;
+  http_status?: number;
   error?: string;
 }
 
 interface LitellmHealthData {
   healthy_count: number;
   unhealthy_count: number;
-  healthy: LitellmModelHealth[];
-  unhealthy: LitellmModelHealth[];
+  no_credits_count: number;
+  timeout_count: number;
+  all_models: LitellmModelHealth[];
   generated_at: string;
 }
 
@@ -201,14 +205,35 @@ export default function AdminHomePage() {
     }
   }, []);
 
-  // Fetch litellm model health
+  // Fetch litellm model health from health-monitor (richer data with latency + status)
   const fetchLitellmHealth = useCallback(async () => {
     setLitellmLoading(true);
     try {
-      const res = await fetch('/api/admin/litellm-health', { cache: 'no-store' });
+      const res = await fetch('/api/admin/monitor-health', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
-        setLitellmHealth(data);
+        const modelHealth = data?.modelHealth;
+        if (modelHealth?.models) {
+          const all_models = modelHealth.models.map((m: any) => ({
+            model: m.model,
+            status: m.status || 'unreachable',
+            latency_ms: m.latency_ms,
+            http_status: m.http_status,
+            error: m.error,
+          }));
+          const healthy_count = all_models.filter((m: any) => m.status === 'healthy').length;
+          const no_credits_count = all_models.filter((m: any) => m.status === 'no_credits').length;
+          const timeout_count = all_models.filter((m: any) => m.status === 'timeout').length;
+          const unhealthy_count = all_models.length - healthy_count - no_credits_count - timeout_count;
+          setLitellmHealth({
+            healthy_count,
+            unhealthy_count: Math.max(0, unhealthy_count),
+            no_credits_count,
+            timeout_count,
+            all_models,
+            generated_at: modelHealth.generated_at || new Date().toISOString(),
+          });
+        }
       }
     } catch (err) {
       console.error('Failed to load litellm health:', err);
@@ -813,7 +838,7 @@ export default function AdminHomePage() {
                   {litellmHealth && (
                     <div className="space-y-2">
                       {/* Summary badge row */}
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
                           <CheckCircle className="w-2.5 h-2.5" />
                           {litellmHealth.healthy_count} healthy
@@ -824,32 +849,56 @@ export default function AdminHomePage() {
                             {litellmHealth.unhealthy_count} unhealthy
                           </span>
                         )}
+                        {litellmHealth.no_credits_count > 0 && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                            <AlertCircle className="w-2.5 h-2.5" />
+                            {litellmHealth.no_credits_count} no credits
+                          </span>
+                        )}
+                        {litellmHealth.timeout_count > 0 && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                            <Clock className="w-2.5 h-2.5" />
+                            {litellmHealth.timeout_count} timeout
+                          </span>
+                        )}
                       </div>
 
-                      {/* Healthy models */}
-                      {litellmHealth.healthy.map((m) => (
+                      {/* All models with status and latency */}
+                      {litellmHealth.all_models.map((m) => (
                         <div key={m.model} className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="w-3 h-3 text-green-500" />
-                            <span className="text-xs font-mono text-stone-700 dark:text-stone-300">{m.model}</span>
+                          <div className="flex items-center gap-2 min-w-0">
+                            {m.status === 'healthy' ? (
+                              <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" />
+                            ) : m.status === 'no_credits' ? (
+                              <AlertCircle className="w-3 h-3 text-amber-500 flex-shrink-0" />
+                            ) : m.status === 'timeout' ? (
+                              <Clock className="w-3 h-3 text-orange-500 flex-shrink-0" />
+                            ) : (
+                              <XCircle className="w-3 h-3 text-red-500 flex-shrink-0" />
+                            )}
+                            <span className="text-xs font-mono text-stone-700 dark:text-stone-300 truncate">{m.model}</span>
                           </div>
-                          <span className="text-[10px] text-green-600 dark:text-green-400">OK</span>
+                          <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                            {m.latency_ms != null && (
+                              <span className="text-[10px] text-stone-400">{m.latency_ms}ms</span>
+                            )}
+                            {m.status === 'healthy' ? (
+                              <span className="text-[10px] text-green-600 dark:text-green-400">OK</span>
+                            ) : m.status === 'no_credits' ? (
+                              <span className="text-[10px] text-amber-500" title={m.error}>No credits</span>
+                            ) : m.status === 'timeout' ? (
+                              <span className="text-[10px] text-orange-500" title={m.error}>Timeout</span>
+                            ) : (
+                              <span className="text-[10px] text-red-500" title={m.error}>Error</span>
+                            )}
+                          </div>
                         </div>
                       ))}
 
-                      {/* Unhealthy models */}
-                      {litellmHealth.unhealthy.map((m) => (
-                        <div key={m.model} className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <XCircle className="w-3 h-3 text-red-500 flex-shrink-0" />
-                            <span className="text-xs font-mono text-stone-700 dark:text-stone-300 truncate">{m.model}</span>
-                          </div>
-                          <span className="text-[10px] text-red-500 flex-shrink-0 ml-2" title={m.error}>Error</span>
-                        </div>
-                      ))}
-                      {litellmHealth.unhealthy.length > 0 && (
+                      {/* Error details for non-healthy models */}
+                      {litellmHealth.all_models.filter(m => m.error && m.status !== 'healthy').length > 0 && (
                         <div className="mt-1 space-y-1">
-                          {litellmHealth.unhealthy.map((m) => m.error && (
+                          {litellmHealth.all_models.filter(m => m.error && m.status !== 'healthy').map((m) => (
                             <div key={`${m.model}-err`} className="text-[10px] text-red-400 bg-red-50 dark:bg-red-900/20 rounded px-2 py-1 font-mono break-all">
                               {m.error}
                             </div>

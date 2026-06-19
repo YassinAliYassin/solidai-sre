@@ -740,10 +740,15 @@ async def get_model_health():
     Tests each model with a minimal completion request.
     Useful for detecting when fallback models go down.
     """
+    # All models from the litellm fallback chain (6 models)
+    # Ordered by priority: primary → fallbacks → last resort
     models = [
-        "openrouter/owl-alpha",
-        "openrouter/auto",
-        "nvidia/nemotron-3-super-120b-a12b:free",
+        "openrouter/owl-alpha",                        # llm-primary
+        "openai/gpt-oss-20b:free",                     # llm-fallback1
+        "meta-llama/llama-3.3-70b-instruct:free",      # llm-fallback2
+        "openai/gpt-oss-120b:free",                    # llm-fallback3
+        "nvidia/nemotron-3-ultra-550b-a55b:free",      # llm-fallback4
+        "openrouter/auto",                             # llm-last-resort
     ]
     tasks = [_check_litellm_model(m) for m in models]
     results = await asyncio.gather(*tasks)

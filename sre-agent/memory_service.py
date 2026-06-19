@@ -20,9 +20,6 @@ from memory.integration import (
     get_all_episodes as _get_all_episodes,
 )
 from memory.integration import (
-    get_episode as _get_episode,
-)
-from memory.integration import (
     get_memory_stats as _get_memory_stats,
 )
 from memory.integration import (

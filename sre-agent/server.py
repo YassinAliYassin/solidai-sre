@@ -335,7 +335,9 @@ async def graph_background_task(thread_id: str):
             tool_seq = 0
 
             async for event in graph.astream_events(
-                initial_state, config=config, version="v2"
+                initial_state,
+                config=config,
+                version="v2",
             ):
                 event_kind = event.get("event", "")
                 metadata = event.get("metadata", {})
@@ -390,6 +392,48 @@ async def graph_background_task(thread_id: str):
                                 }
                                 thoughts_buffer.append(thought_entry)
                                 await _record_thoughts(run_id, [thought_entry])
+
+                elif event_kind == "on_chain_stream":
+                    # Fallback: extract thought events from chain stream on LLM nodes.
+                    # When LLMs are mocked, LangGraph does not emit on_chat_model_*
+                    # events, but the node output still appears in on_chain_stream.
+                    # We extract the "messages" field which contains agent reasoning.
+                    if node_name in ("planner", "synthesizer_node", "writeup", "subagent"):
+                        chunk = event.get("data", {}).get("chunk", {})
+                        if isinstance(chunk, dict) and "messages" in chunk:
+                            messages = chunk["messages"]
+                            if messages:
+                                last_msg = messages[-1]
+                                if isinstance(last_msg, dict):
+                                    content = last_msg.get("content", "")
+                                elif hasattr(last_msg, "content"):
+                                    content = last_msg.content
+                                else:
+                                    content = str(last_msg)
+                                if content and isinstance(content, str):
+                                    tool_seq += 1
+                                    agent_name = node_name
+                                    accumulated_text += content
+                                    await response_queue.put(
+                                        {
+                                            "event": "thought",
+                                            "data": {
+                                                "text": content,
+                                                "agent_name": agent_name,
+                                            },
+                                        }
+                                    )
+                                    if run_id:
+                                        thought_entry = {
+                                            "text": content[:2000],
+                                            "ts": datetime.datetime.now(
+                                                datetime.timezone.utc
+                                            ).isoformat(),
+                                            "seq": tool_seq,
+                                            "agent": agent_name,
+                                        }
+                                        thoughts_buffer.append(thought_entry)
+                                        await _record_thoughts(run_id, [thought_entry])
 
                 elif event_kind == "on_tool_start":
                     tool_calls_count += 1

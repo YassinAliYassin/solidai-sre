@@ -39,10 +39,11 @@ def test_parse_enabled_skills_env_unset():
 
 
 def test_parse_enabled_skills_env_all():
-    """ENABLED_SKILLS=all returns None (all skills)."""
+    """ENABLED_SKILLS=all returns _ALL_SKILLS sentinel (explicit all)."""
+    from config import _ALL_SKILLS
     os.environ["ENABLED_SKILLS"] = "all"
     try:
-        assert parse_enabled_skills_env() is None
+        assert parse_enabled_skills_env() is _ALL_SKILLS
     finally:
         del os.environ["ENABLED_SKILLS"]
 

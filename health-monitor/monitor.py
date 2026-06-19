@@ -578,6 +578,12 @@ async def health_check():
     return _JSONResponse({"status": "healthy", "service": "health-monitor"})
 
 
+@_api_app.get("/health/summary")
+async def health_summary_alias():
+    """Alias for /api/health-summary — convenience endpoint."""
+    return await get_health_summary()
+
+
 @_api_app.get("/api/health-history")
 async def get_health_history(window_hours: int = 24):
     """Get health history with uptime and latency stats for all services."""
@@ -668,18 +674,25 @@ async def get_health_summary():
     })
 
 
-async def _check_litellm_model(model_name: str, timeout: float = 45.0) -> dict:
+async def _check_litellm_model(model_name: str, timeout: float = 25.0) -> dict:
     """Test a single litellm model by sending a minimal completion request.
 
     Uses a short max_tokens to keep the check fast. If the model times out,
     reports it as degraded rather than waiting indefinitely.
 
-    Note: timeout is 45s because OpenRouter can take 15-20s from some VPS
+    Note: timeout is 25s because OpenRouter can take 15-20s from some VPS
     network locations. The litellm proxy adds overhead on top, and fallback
-    chains can add additional latency. 45s ensures we don't falsely report
-    healthy models as down during transient network slowdowns.
+    chains can add additional latency. 25s ensures we don't falsely report
+    healthy models as down during transient network slowdowns while keeping
+    the total background refresh cycle manageable (6 models × 25s parallel ≈ 25s).
+
+    The model_name should be an OpenRouter model ID (e.g. "openai/gpt-oss-20b:free").
+    This function sends directly to OpenRouter's API, bypassing litellm, to
+    avoid litellm's model routing complexity. We're testing provider reachability,
+    not litellm's internal routing.
     """
-    litellm_url = "http://litellm:4000"
+    # Send directly to OpenRouter API, not through litellm
+    openrouter_url = "https://openrouter.ai/api/v1/chat/completions"
     api_key = os.getenv("OPENROUTER_API_KEY", "")
     if not api_key:
         return {"model": model_name, "status": "not_configured", "error": "OPENROUTER_API_KEY not set"}
@@ -687,7 +700,7 @@ async def _check_litellm_model(model_name: str, timeout: float = 45.0) -> dict:
         start = time.monotonic()
         async with httpx.AsyncClient(timeout=httpx.Timeout(timeout)) as client:
             resp = await client.post(
-                f"{litellm_url}/v1/chat/completions",
+                openrouter_url,
                 headers={"Authorization": f"Bearer {api_key}"},
                 json={
                     "model": model_name,
@@ -733,47 +746,98 @@ async def _check_litellm_model(model_name: str, timeout: float = 45.0) -> dict:
         return {"model": model_name, "status": "unreachable", "error": str(e)[:200]}
 
 
-@_api_app.get("/api/model-health")
-async def get_model_health():
-    """Check health of all configured litellm models.
+# ---------------------------------------------------------------------------
+# Model health cache — background refresh so the API endpoint never blocks
+# ---------------------------------------------------------------------------
 
-    Tests each model with a minimal completion request.
-    Useful for detecting when fallback models go down.
-    """
-    # All models from the litellm fallback chain (6 models)
-    # Ordered by priority: primary → fallbacks → last resort
-    models = [
-        "openrouter/owl-alpha",                        # llm-primary
-        "openai/gpt-oss-20b:free",                     # llm-fallback1
-        "meta-llama/llama-3.3-70b-instruct:free",      # llm-fallback2
-        "openai/gpt-oss-120b:free",                    # llm-fallback3
-        "nvidia/nemotron-3-ultra-550b-a55b:free",      # llm-fallback4
-        "openrouter/auto",                             # llm-last-resort
-    ]
-    tasks = [_check_litellm_model(m) for m in models]
-    results = await asyncio.gather(*tasks)
+_model_health_cache: dict = {"status": "pending", "models": [], "timestamp": None}
+_model_health_lock = asyncio.Lock()
+_model_health_task: Optional[asyncio.Task] = None
 
+# All models from the litellm fallback chain (6 models)
+# Ordered by priority: primary → fallbacks → last resort
+# NOTE: These are OpenRouter model IDs (without "openrouter/" prefix) since
+# _check_litellm_model sends directly to OpenRouter's API, not through litellm.
+_MODEL_LIST = [
+    "openrouter/owl-alpha",                                 # llm-primary
+    "openai/gpt-oss-20b:free",                              # llm-fallback1
+    "cohere/north-mini-code:free",                            # llm-fallback2
+    "openai/gpt-oss-120b:free",                             # llm-fallback3
+    "nvidia/nemotron-3-ultra-550b-a55b:free",               # llm-fallback4
+    "nvidia/nemotron-3-super-120b-a12b:free",               # llm-last-resort
+]
+
+# How often to refresh model health in the background (seconds)
+MODEL_HEALTH_REFRESH_INTERVAL = 120  # 2 minutes
+
+
+def _compute_model_overall(results: list[dict]) -> str:
+    """Compute overall status from individual model results."""
     all_healthy = all(r["status"] == "healthy" for r in results)
     any_healthy = any(r["status"] == "healthy" for r in results)
     any_no_credits = any(r["status"] == "no_credits" for r in results)
     any_timeout = any(r["status"] == "timeout" for r in results)
 
     if all_healthy:
-        overall = "healthy"
+        return "healthy"
     elif any_healthy:
-        overall = "degraded"  # Some models work
+        return "degraded"
     elif any_no_credits:
-        overall = "no_credits"  # All down due to credit exhaustion
+        return "no_credits"
     elif any_timeout:
-        overall = "timeout"  # All down due to network timeouts
+        return "timeout"
     else:
-        overall = "all_down"
+        return "all_down"
 
-    return _JSONResponse({
+
+async def _refresh_model_health_cache():
+    """Run model health checks in the background and update the cache."""
+    global _model_health_cache
+    tasks = [_check_litellm_model(m) for m in _MODEL_LIST]
+    results = await asyncio.gather(*tasks)
+    overall = _compute_model_overall(results)
+    _model_health_cache = {
         "status": overall,
         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "models": results,
-    })
+    }
+    logger.info(f"Model health cache refreshed: overall={overall}")
+
+
+async def _model_health_background_loop():
+    """Background task that periodically refreshes model health cache."""
+    # Initial refresh
+    try:
+        await _refresh_model_health_cache()
+    except Exception as e:
+        logger.error(f"Initial model health refresh failed: {e}")
+
+    while True:
+        await asyncio.sleep(MODEL_HEALTH_REFRESH_INTERVAL)
+        try:
+            await _refresh_model_health_cache()
+        except Exception as e:
+            logger.error(f"Model health background refresh failed: {e}")
+
+
+@_api_app.get("/api/model-health")
+async def get_model_health(force: bool = False):
+    """Check health of all configured litellm models.
+
+    Returns cached results from background refresh (updated every 2 minutes).
+    This ensures the endpoint responds quickly without blocking on slow model checks.
+    Use ?force=true to trigger an immediate refresh (may take 30-60s).
+    """
+    if force:
+        try:
+            await asyncio.wait_for(_refresh_model_health_cache(), timeout=90.0)
+        except asyncio.TimeoutError:
+            return _JSONResponse({
+                **(_model_health_cache if _model_health_cache["timestamp"] else {"status": "pending", "models": [], "timestamp": None}),
+                "refreshing": True,
+                "warning": "Force refresh timed out after 90s, showing last cached result",
+            })
+    return _JSONResponse(_model_health_cache)
 
 
 async def _run_api_server():
@@ -815,6 +879,7 @@ async def main():
     await asyncio.gather(
         _health_check_loop(),
         _run_api_server(),
+        _model_health_background_loop(),
     )
 
 

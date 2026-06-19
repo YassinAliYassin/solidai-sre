@@ -7,7 +7,7 @@
 #
 # Fallback chain (fastest → most capable):
 #   llm-primary → llm-fallback1 → llm-fallback2 → llm-fallback3 → llm-fallback4
-#   (owl-alpha)    (gpt-oss-20b)   (llama-3.3)    (gpt-oss-120b)  (nemotron-ultra)
+#   (owl-alpha)    (gpt-oss-20b)   (cohere)       (gpt-oss-120b)  (nemotron-ultra)
 #
 # NOTE: OpenRouter can take 15-20s from VPS — request_timeout is 300s.
 # Fallback models are ordered by expected latency (fastest first).
@@ -23,32 +23,32 @@ model_list:
   # Fallback 1: GPT-OSS 20B (free, 131K context) — fast, good agentic
   - model_name: "llm-fallback1"
     litellm_params:
-      model: openai/gpt-oss-20b:free
+      model: openrouter/openai/gpt-oss-20b:free
       api_key: os.environ/OPENROUTER_API_KEY
 
-  # Fallback 2: Llama 3.3 70B Instruct (free, 131K context) — strong generalist
+  # Fallback 2: Cohere North Mini Code (free, 256K context) — fast, reliable
   - model_name: "llm-fallback2"
     litellm_params:
-      model: meta-llama/llama-3.3-70b-instruct:free
+      model: openrouter/cohere/north-mini-code:free
       api_key: os.environ/OPENROUTER_API_KEY
 
   # Fallback 3: GPT-OSS 120B (free, 131K context) — large open-weight MoE
   - model_name: "llm-fallback3"
     litellm_params:
-      model: openai/gpt-oss-120b:free
+      model: openrouter/openai/gpt-oss-120b:free
       api_key: os.environ/OPENROUTER_API_KEY
 
   # Fallback 4: NVIDIA Nemotron 3 Ultra 550B (free, 1M context) — largest free model
   - model_name: "llm-fallback4"
     litellm_params:
-      model: nvidia/nemotron-3-ultra-550b-a55b:free
+      model: openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
       api_key: os.environ/OPENROUTER_API_KEY
 
-  # Last resort: OpenRouter auto router (picks best available model)
-  # May require credits — only used when all free models fail
+  # Last resort: NVIDIA Nemotron 3 Super 120B (free, 1M context)
+  # Replaces openrouter/auto which requires credits
   - model_name: "llm-last-resort"
     litellm_params:
-      model: openrouter/auto
+      model: openrouter/nvidia/nemotron-3-super-120b-a12b:free
       api_key: os.environ/OPENROUTER_API_KEY
 
 # Map any incoming model name to the primary model group.

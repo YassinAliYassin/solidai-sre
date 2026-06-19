@@ -115,12 +115,12 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
-        run: pip install httpx pytest
+        run: pip install httpx pytest pytest-asyncio anyio
 
       - name: Run health-monitor tests
         run: |
           cd health-monitor
-          python -m pytest tests/ -v --tb=short 2>&1 || echo "No tests directory yet"
+          python -m pytest tests/ -v --tb=short 2>&1
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Config-service tests

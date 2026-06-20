@@ -89,3 +89,4 @@ video-analysis-frames/
 SolidAI SRE*.mp4
 cf_check.py
 cf_check.sh
+_cf*.py

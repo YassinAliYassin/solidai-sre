@@ -1258,9 +1258,22 @@ async def create_investigation_stream(
         )
 
         # Stream responses as SSE events
+        # Use ping keepalive to prevent nginx/proxy from dropping idle connections
+        SSE_PING_INTERVAL_SECONDS = int(os.getenv("SSE_PING_INTERVAL_SECONDS", "15"))
+        last_ping_time = time.monotonic()
         event_count = 0
         while True:
-            response = await response_queue.get()
+            # Wait for response, but send periodic pings to keep connection alive
+            try:
+                response = await asyncio.wait_for(
+                    response_queue.get(),
+                    timeout=SSE_PING_INTERVAL_SECONDS,
+                )
+            except asyncio.TimeoutError:
+                # Send SSE ping comment to keep connection alive
+                yield ": ping\n\n"
+                last_ping_time = time.monotonic()
+                continue
 
             if response is None:  # Completion signal
                 break

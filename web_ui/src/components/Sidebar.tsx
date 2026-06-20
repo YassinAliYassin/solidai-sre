@@ -30,6 +30,8 @@ const teamNavigation = [
   { name: 'Tools & MCPs', href: '/team/tools', icon: Server },
   { name: 'Knowledge Base', href: '/team/knowledge', icon: BookOpen },
   { name: 'Memory', href: '/team/memory', icon: Brain },
+  // New link to investigation history
+  { name: 'Investigation History', href: '/team/investigation-history', icon: Activity },
   { name: 'Proposed Changes', href: '/team/pending-changes', icon: GitPullRequest },
   { name: 'Agent Runs', href: '/team/agent-runs', icon: Bot },
   { name: 'Settings', href: '/settings', icon: ShieldCheck },

@@ -372,6 +372,20 @@ def get_all_episodes(org_id: str = "", limit: int = 50) -> list:
     return (result or {}).get("episodes", [])
 
 
+def get_episode_by_id(episode_id: str, org_id: str = "") -> Optional[dict]:
+    """Get a single episode by ID from config-service."""
+    org = org_id or _DEFAULT_ORG_ID
+    result = _get(f"/episodes/{episode_id}", {"org_id": org})
+    if result and result.get("id"):
+        return result
+    # Fallback: search in all episodes
+    episodes = get_all_episodes(org_id=org, limit=200)
+    for ep in episodes:
+        if ep.get("id") == episode_id or ep.get("thread_id") == episode_id:
+            return ep
+    return None
+
+
 def search_similar(
     prompt: str,
     org_id: str = "",

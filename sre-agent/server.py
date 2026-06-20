@@ -1472,6 +1472,17 @@ async def memory_episodes():
     return {"episodes": get_all_episodes()}
 
 
+@app.get("/memory/episodes/{episode_id}")
+async def memory_episode_detail(episode_id: str):
+    """Get a single investigation episode by ID."""
+    from memory_service import get_episode_by_id
+
+    episode = get_episode_by_id(episode_id)
+    if not episode:
+        raise HTTPException(404, f"Episode {episode_id} not found")
+    return episode
+
+
 @app.post("/memory/search")
 async def memory_search(request: MemorySearchRequest):
     """Search for similar past investigations."""

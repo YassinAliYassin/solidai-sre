@@ -498,6 +498,145 @@ def check_latency_degradation(history: dict, service_name: str, threshold_ms: in
     }
 
 
+def predict_latency_trend(history: dict, service_name: str, threshold_ms: int = None, window_hours: int = 2) -> dict:
+    """Predict when a service's avg latency will cross the degradation threshold.
+
+    Uses simple linear regression on recent latency data points to forecast
+    the time (in minutes) until latency exceeds the configured threshold.
+    This enables proactive alerting before degradation actually occurs.
+
+    Args:
+        history: Health history dict (from _load_history).
+        service_name: Name of the service to analyze.
+        threshold_ms: Latency threshold (defaults to LATENCY_THRESHOLD_MS).
+        window_hours: Hours of recent data to use for trend analysis.
+
+    Returns:
+        dict with trend data: slope, current_avg, threshold, minutes_to_threshold,
+        prediction_confidence, trend_direction.
+    """
+    if threshold_ms is None:
+        threshold_ms = LATENCY_THRESHOLD_MS
+
+    entries = history.get(service_name, [])
+    if not entries:
+        return {"trend_direction": "unknown", "minutes_to_threshold": None, "prediction_confidence": 0.0}
+
+    cutoff = (
+        datetime.datetime.now(datetime.timezone.utc)
+        - datetime.timedelta(hours=window_hours)
+    ).isoformat()
+
+    # Get recent healthy entries with latency data
+    recent = [
+        e for e in entries
+        if e["timestamp"] >= cutoff
+        and e.get("status") == "healthy"
+        and e.get("latency_ms") is not None
+    ]
+
+    if len(recent) < 3:
+        return {
+            "trend_direction": "stable",
+            "current_avg": get_latency_stats(history, service_name, window_hours).get("avg_ms"),
+            "threshold_ms": threshold_ms,
+            "minutes_to_threshold": None,
+            "prediction_confidence": 0.0,
+            "reason": "insufficient data for trend prediction",
+        }
+
+    # Simple linear regression: y = mx + b
+    # x = minutes from first data point, y = latency_ms
+    first_ts = datetime.datetime.fromisoformat(recent[0]["timestamp"])
+    x_vals = []
+    y_vals = []
+
+    for entry in recent:
+        ts = datetime.datetime.fromisoformat(entry["timestamp"])
+        delta_minutes = (ts - first_ts).total_seconds() / 60.0
+        x_vals.append(delta_minutes)
+        y_vals.append(entry["latency_ms"])
+
+    n = len(x_vals)
+    sum_x = sum(x_vals)
+    sum_y = sum(y_vals)
+    sum_xy = sum(x * y for x, y in zip(x_vals, y_vals))
+    sum_x2 = sum(x * x for x in x_vals)
+
+    denominator = n * sum_x2 - sum_x * sum_x
+    if denominator == 0:
+        slope = 0.0
+    else:
+        slope = (n * sum_xy - sum_x * sum_y) / denominator
+
+    intercept = (sum_y - slope * sum_x) / n
+
+    current_avg = round(sum_y / n, 1)
+
+    # Determine trend direction
+    # Use slope relative to average latency to detect meaningful trends.
+    # A trend is significant if the slope would change avg latency by >2% per data point interval.
+    avg_latency = sum_y / n
+    if avg_latency > 0:
+        slope_pct_per_interval = slope / avg_latency
+    else:
+        slope_pct_per_interval = 0.0
+
+    # Also check absolute slope for low-latency services (where % is misleading)
+    # 2ms per minute is significant regardless of baseline
+    if slope_pct_per_interval > 0.02 or slope >= 2.0:
+        trend_direction = "increasing"
+    elif slope_pct_per_interval < -0.02 or slope <= -2.0:
+        trend_direction = "decreasing"
+    else:
+        trend_direction = "stable"
+
+    # Calculate confidence based on R² (coefficient of determination)
+    y_mean = sum_y / n
+    ss_res = sum((y - (slope * x + intercept)) ** 2 for x, y in zip(x_vals, y_vals))
+    ss_tot = sum((y - y_mean) ** 2 for y in y_vals)
+    r_squared = 1.0 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
+    confidence = round(max(0.0, min(1.0, r_squared)), 2)
+
+    # Predict minutes to threshold
+    minutes_to_threshold = None
+    if slope > 0 and confidence >= 0.5 and trend_direction == "increasing":
+        # y = mx + b → solve for x when y = threshold
+        minutes_at_threshold = (threshold_ms - intercept) / slope if slope != 0 else None
+        if minutes_at_threshold is not None:
+            elapsed_minutes = x_vals[-1] if x_vals else 0
+            remaining = minutes_at_threshold - elapsed_minutes
+            if remaining > 0:
+                minutes_to_threshold = round(remaining, 1)
+            else:
+                minutes_to_threshold = 0  # Already at/past threshold
+
+    # Reason string
+    if minutes_to_threshold is not None and minutes_to_threshold > 0:
+        reason = (
+            f"Latency trending UP at {slope:.2f}min/min — "
+            f"will cross {threshold_ms}ms threshold in ~{minutes_to_threshold:.0f}min "
+            f"(confidence: {confidence:.0%})"
+        )
+    elif trend_direction == "increasing":
+        reason = f"Increasing trend ({slope:.2f}min/min) but below threshold prediction line"
+    elif trend_direction == "decreasing":
+        reason = f"Improving ({slope:.2f}min/min)"
+    else:
+        reason = "Stable"
+
+    return {
+        "trend_direction": trend_direction,
+        "slope_per_minute": round(slope, 4),
+        "current_avg_ms": current_avg,
+        "threshold_ms": threshold_ms,
+        "minutes_to_threshold": minutes_to_threshold,
+        "prediction_confidence": confidence,
+        "data_points": n,
+        "reason": reason,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Telegram alerting
 # ---------------------------------------------------------------------------
@@ -661,6 +800,30 @@ async def _check_error_rates_and_latency(current_results: list[dict]):
                 )
                 await send_telegram(message)
                 _last_alert_time[latency_key] = now
+
+        # --- Latency trend prediction (proactive alerting) ---
+        trend_key = f"{name}:trend"
+        last_trend_alert = _last_alert_time.get(trend_key, 0)
+        if now - last_trend_alert >= ALERT_COOLDOWN:
+            trend = predict_latency_trend(history, name)
+            if (
+                trend.get("minutes_to_threshold") is not None
+                and trend["minutes_to_threshold"] > 0
+                and trend["minutes_to_threshold"] <= 30
+                and trend.get("prediction_confidence", 0) >= 0.6
+            ):
+                message = (
+                    f"🔮 <b>SolidAI SRE Predictive Alert</b>\n\n"
+                    f"🔧 <b>{name}</b> latency is trending UP "
+                    f"(slope: {trend['slope_per_minute']}/min)\n"
+                    f"Current avg: {trend['current_avg_ms']}ms\n"
+                    f"Predicted to cross {trend['threshold_ms']}ms threshold "
+                    f"in ~{trend['minutes_to_threshold']:.0f}min\n"
+                    f"Confidence: {trend['prediction_confidence']:.0%}\n"
+                    f"Time: {result['timestamp'][:19]} UTC"
+                )
+                await send_telegram(message)
+                _last_alert_time[trend_key] = now
 
 
 async def run_health_check():
@@ -843,6 +1006,35 @@ async def get_error_rates(window_hours: int = None):
             "recent": recent_entries,
         }
     return _JSONResponse(response)
+
+
+@_api_app.get("/api/latency-trends")
+async def get_latency_trends(window_hours: int = 2):
+    """Get latency trend predictions for all services.
+
+    Uses linear regression on recent latency data to forecast when a service
+    will cross the degradation threshold. Enables proactive alerting.
+    """
+    history = _load_history()
+    response = {}
+    for name, entries in history.items():
+        if not entries:
+            continue
+        trend = predict_latency_trend(history, name, window_hours=window_hours)
+        response[name] = trend
+    return _JSONResponse(response)
+
+
+@_api_app.get("/api/latency-trends/{service_name}")
+async def get_service_latency_trend(service_name: str, window_hours: int = 2):
+    """Get latency trend prediction for a specific service."""
+    history = _load_history()
+    if service_name not in history:
+        return _JSONResponse(
+            {"error": f"No history for service: {service_name}"}, status_code=404
+        )
+    trend = predict_latency_trend(history, service_name, window_hours=window_hours)
+    return _JSONResponse(trend)
 
 
 async def _check_litellm_model(model_name: str, timeout: float = 25.0) -> dict:

@@ -20,6 +20,9 @@ from memory.integration import (
     get_all_episodes as _get_all_episodes,
 )
 from memory.integration import (
+    get_episode_by_id as _get_episode_by_id,
+)
+from memory.integration import (
     get_memory_stats as _get_memory_stats,
 )
 from memory.integration import (
@@ -132,6 +135,11 @@ def get_memory_stats(org_id: str = "") -> dict:
 def get_all_episodes(org_id: str = "") -> list:
     """Get all stored episodes from config-service."""
     return _get_all_episodes(org_id=org_id)
+
+
+def get_episode_by_id(episode_id: str, org_id: str = "") -> Optional[dict]:
+    """Get a single episode by ID from config-service."""
+    return _get_episode_by_id(episode_id=episode_id, org_id=org_id)
 
 
 def search_similar(

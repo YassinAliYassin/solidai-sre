@@ -30,6 +30,7 @@ import {
   Pause,
   Play,
   History,
+  Server,
 } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 
@@ -131,6 +132,19 @@ interface ServiceHealthHistory {
   recent: HealthHistoryEntry[];
 }
 
+interface LatencyDegradation {
+  degraded: boolean;
+  p95_ms: number | null;
+  threshold_ms: number;
+  reason: string | null;
+}
+
+interface ErrorRateData {
+  error_rate: number;
+  latency_degradation: LatencyDegradation;
+  recent: HealthHistoryEntry[];
+}
+
 const HEALTH_REFRESH_INTERVAL_MS = 30000; // 30 seconds
 const HISTORY_REFRESH_INTERVAL_MS = 300000; // 5 minutes
 
@@ -148,6 +162,9 @@ export default function AdminHomePage() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [litellmHealth, setLitellmHealth] = useState<LitellmHealthData | null>(null);
   const [litellmLoading, setLitellmLoading] = useState(false);
+  const [errorRates, setErrorRates] = useState<Record<string, ErrorRateData>>({});
+  const [errorRatesLoading, setErrorRatesLoading] = useState(false);
+  const [errorRatesLastUpdated, setErrorRatesLastUpdated] = useState<Date | null>(null);
   const healthIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const historyIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -242,6 +259,23 @@ export default function AdminHomePage() {
     }
   }, []);
 
+  // Fetch error rates from health-monitor
+  const fetchErrorRates = useCallback(async () => {
+    setErrorRatesLoading(true);
+    try {
+      const res = await fetch('/api/admin/error-rates?window_hours=1', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        setErrorRates(data || {});
+        setErrorRatesLastUpdated(new Date());
+      }
+    } catch (err) {
+      console.error('Failed to load error rates:', err);
+    } finally {
+      setErrorRatesLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!identity?.org_id) return;
 
@@ -269,7 +303,9 @@ export default function AdminHomePage() {
     fetchHealthHistory();
     // Initial litellm health fetch
     fetchLitellmHealth();
-  }, [identity?.org_id, fetchHealth, fetchHealthHistory, fetchLitellmHealth]);
+    // Initial error rates fetch
+    fetchErrorRates();
+  }, [identity?.org_id, fetchHealth, fetchHealthHistory, fetchLitellmHealth, fetchErrorRates]);
 
   // Auto-refresh health data
   useEffect(() => {
@@ -285,6 +321,7 @@ export default function AdminHomePage() {
       const orgId = identity?.org_id;
       if (orgId) fetchHealth(orgId);
       fetchLitellmHealth();
+      fetchErrorRates();
     }, HEALTH_REFRESH_INTERVAL_MS);
 
     return () => {
@@ -911,6 +948,168 @@ export default function AdminHomePage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Error Rates & Latency Degradation */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-stone-900 dark:text-white">Error Rates & Latency (1h Window)</h2>
+            <div className="flex items-center gap-2">
+              {errorRatesLastUpdated && (
+                <span className="text-xs text-stone-400" title={errorRatesLastUpdated.toISOString()}>
+                  Updated {formatRelativeTime(errorRatesLastUpdated.toISOString())}
+                </span>
+              )}
+              <button
+                onClick={fetchErrorRates}
+                disabled={errorRatesLoading}
+                className="p-1.5 rounded-md text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors disabled:opacity-50"
+                title="Refresh error rates"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${errorRatesLoading ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+          </div>
+          {Object.keys(errorRates).length === 0 && !errorRatesLoading && (
+            <div className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl shadow-sm p-8 text-center text-sm text-stone-500">
+              No error rate data available — click refresh to load
+            </div>
+          )}
+          {Object.keys(errorRates).length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.entries(errorRates).map(([serviceName, data]) => {
+                const errorRatePct = (data.error_rate * 100).toFixed(1);
+                const isDegraded = data.latency_degradation?.degraded;
+                const p95 = data.latency_degradation?.p95_ms;
+                const threshold = data.latency_degradation?.threshold_ms;
+                const hasErrors = data.error_rate > 0;
+
+                // Determine card border color based on health
+                const borderColor = hasErrors
+                  ? 'border-clay-light/30 dark:border-red-900/40'
+                  : isDegraded
+                  ? 'border-yellow-200 dark:border-yellow-800/40'
+                  : 'border-stone-200 dark:border-stone-700';
+
+                return (
+                  <div
+                    key={serviceName}
+                    className={`bg-white dark:bg-stone-800 border ${borderColor} rounded-xl shadow-sm p-5 space-y-3`}
+                  >
+                    {/* Service name + status */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Server className="w-4 h-4 text-stone-500" />
+                        <span className="text-sm font-medium text-stone-900 dark:text-white">{serviceName}</span>
+                      </div>
+                      {hasErrors ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                          <XCircle className="w-2.5 h-2.5" />
+                          Errors
+                        </span>
+                      ) : isDegraded ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
+                          <AlertCircle className="w-2.5 h-2.5" />
+                          Slow
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                          <CheckCircle className="w-2.5 h-2.5" />
+                          OK
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Error rate bar */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] text-stone-500 uppercase">Error Rate</span>
+                        <span className={`text-xs font-mono font-medium ${
+                          data.error_rate > 0.3
+                            ? 'text-red-600 dark:text-red-400'
+                            : data.error_rate > 0.1
+                            ? 'text-yellow-600 dark:text-yellow-400'
+                            : 'text-green-600 dark:text-green-400'
+                        }`}>
+                          {errorRatePct}%
+                        </span>
+                      </div>
+                      <div className="h-2 bg-stone-100 dark:bg-stone-700 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            data.error_rate > 0.3
+                              ? 'bg-red-500'
+                              : data.error_rate > 0.1
+                              ? 'bg-yellow-500'
+                              : 'bg-green-500'
+                          }`}
+                          style={{ width: `${Math.min(100, data.error_rate * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Latency degradation */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] text-stone-500 uppercase">P95 Latency</span>
+                        <span className={`text-xs font-mono font-medium ${
+                          isDegraded
+                            ? 'text-yellow-600 dark:text-yellow-400'
+                            : 'text-stone-600 dark:text-stone-400'
+                        }`}>
+                          {p95 != null ? `${p95}ms` : 'N/A'}
+                        </span>
+                      </div>
+                      {p95 != null && threshold != null && (
+                        <div className="h-1.5 bg-stone-100 dark:bg-stone-700 rounded-full overflow-hidden relative">
+                          {/* Threshold marker */}
+                          <div
+                            className="absolute top-0 h-full w-0.5 bg-stone-400 dark:bg-stone-500"
+                            style={{ left: `${Math.min(100, (threshold / (threshold * 2)) * 100)}%` }}
+                          />
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              isDegraded ? 'bg-yellow-500' : 'bg-forest'
+                            }`}
+                            style={{ width: `${Math.min(100, (p95 / (threshold * 2)) * 100)}%` }}
+                          />
+                        </div>
+                      )}
+                      {isDegraded && data.latency_degradation?.reason && (
+                        <p className="text-[10px] text-yellow-600 dark:text-yellow-400 mt-1">
+                          {data.latency_degradation.reason}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Recent check timestamps */}
+                    {data.recent && data.recent.length > 0 && (
+                      <div className="pt-2 border-t border-stone-100 dark:border-stone-700">
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {data.recent.slice(-8).map((entry, idx) => (
+                            <div
+                              key={idx}
+                              className={`w-2 h-2 rounded-full ${
+                                entry.status === 'healthy'
+                                  ? 'bg-green-500'
+                                  : entry.status === 'degraded'
+                                  ? 'bg-yellow-500'
+                                  : entry.status === 'down'
+                                  ? 'bg-red-500'
+                                  : 'bg-stone-400'
+                              }`}
+                              title={`${entry.status} at ${new Date(entry.timestamp).toLocaleString()}`}
+                            />
+                          ))}
+                        </div>
+                        <p className="text-[9px] text-stone-400 mt-1">Last 8 checks</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Team Performance Breakdown */}

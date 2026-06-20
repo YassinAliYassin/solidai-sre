@@ -1,9 +1,9 @@
 # LiteLLM Proxy Configuration
 #
-# Model routing: explicit model groups with fallback chain.
+# Model routing: explicit model entries with fallback chain.
 # The sre-agent sends model names like "claude-sonnet-4-20250514".
-# model_group_alias maps any incoming name to "llm-primary".
-# When llm-primary fails, router_settings.fallbacks routes through the chain.
+# These are defined as explicit model entries that map to openrouter/owl-alpha.
+# When a model fails, router_settings.fallbacks routes through the chain.
 #
 # Fallback chain (fastest → most capable):
 #   llm-primary → llm-fallback1 → llm-fallback2 → llm-fallback3 → llm-fallback4
@@ -16,6 +16,30 @@
 model_list:
   # Primary: owl-alpha (free, 1M context) — fastest high-quality model
   - model_name: "llm-primary"
+    litellm_params:
+      model: openrouter/owl-alpha
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  # Alias: claude-sonnet-4 → llm-primary (sre-agent default)
+  - model_name: "claude-sonnet-4-20250514"
+    litellm_params:
+      model: openrouter/owl-alpha
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  # Alias: claude-haiku-4-5 → llm-primary (summary/memory/writeup)
+  - model_name: "claude-haiku-4-5-20251001"
+    litellm_params:
+      model: openrouter/owl-alpha
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  # Alias: openrouter/free → llm-primary
+  - model_name: "openrouter/free"
+    litellm_params:
+      model: openrouter/owl-alpha
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  # Alias: tencent/hy3-preview → llm-primary
+  - model_name: "openrouter/tencent/hy3-preview"
     litellm_params:
       model: openrouter/owl-alpha
       api_key: os.environ/OPENROUTER_API_KEY
@@ -51,11 +75,6 @@ model_list:
       model: openrouter/nvidia/nemotron-3-super-120b-a12b:free
       api_key: os.environ/OPENROUTER_API_KEY
 
-# Map any incoming model name to the primary model group.
-# This is the entry point for all LLM requests.
-model_group_alias:
-  "*": "llm-primary"
-
 litellm_settings:
   drop_params: true
   num_retries: 2
@@ -63,9 +82,14 @@ litellm_settings:
 
 # Define the fallback chain between model groups.
 # Each model falls through to the next on failure.
+# Alias models fall back to the same chain as llm-primary.
 router_settings:
   fallbacks:
     - llm-primary: ["llm-fallback1"]
+    - claude-sonnet-4-20250514: ["llm-fallback1"]
+    - claude-haiku-4-5-20251001: ["llm-fallback1"]
+    - openrouter/free: ["llm-fallback1"]
+    - openrouter/tencent/hy3-preview: ["llm-fallback1"]
     - llm-fallback1: ["llm-fallback2"]
     - llm-fallback2: ["llm-fallback3"]
     - llm-fallback3: ["llm-fallback4"]

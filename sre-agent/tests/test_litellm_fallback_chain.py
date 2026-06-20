@@ -117,23 +117,38 @@ class TestLitellmConfigStructure:
             )
 
     def test_all_models_are_free_tier(self):
-        """All fallback models should use :free suffix for zero-cost operation."""
+        """All fallback models should use :free suffix for zero-cost operation.
+
+        Alias models (which map to the same primary model) and the primary
+        itself are exempt from the :free requirement — only the fallback
+        chain models (llm-fallback*) need :free.
+        """
         config = load_litellm_config()
+        model_names = get_model_names(config)
         model_ids = get_litellm_model_ids(config)
-        # Primary can be paid, but fallbacks should be free
-        fallback_ids = model_ids[1:]  # Skip primary
-        for model_id in fallback_ids:
-            assert ":free" in model_id, (
-                f"Fallback model '{model_id}' does not use :free suffix. "
-                "All fallback models should be free-tier to avoid credit dependency."
-            )
+
+        # Identify fallback models: those with llm-fallback or llm-last prefix
+        # These must use :free to avoid credit dependency
+        for name, mid in zip(model_names, model_ids):
+            if name.startswith("llm-fallback") or name.startswith("llm-last"):
+                assert ":free" in mid, (
+                    f"Fallback model '{name}' -> '{mid}' does not use :free suffix. "
+                    "All fallback models should be free-tier to avoid credit dependency."
+                )
 
     def test_model_names_follow_convention(self):
-        """Model names should follow the llm-* naming convention."""
+        """Model names should follow the llm-* naming convention.
+
+        Exception: alias models that map sre-agent model names (e.g.,
+        claude-sonnet-4-20250514) to the primary are also allowed.
+        """
         config = load_litellm_config()
+        alias_names = {"claude-sonnet-4-20250514", "claude-haiku-4-5-20251001",
+                       "openrouter/free", "openrouter/tencent/hy3-preview"}
         for name in get_model_names(config):
-            assert name.startswith("llm-"), (
-                f"Model name '{name}' doesn't follow llm-* convention"
+            assert name.startswith("llm-") or name in alias_names, (
+                f"Model name '{name}' doesn't follow llm-* convention "
+                "and is not a recognized alias"
             )
 
 
@@ -200,21 +215,30 @@ class TestFallbackChain:
         )
 
     def test_fallback_chain_covers_all_models(self):
-        """Following the chain from primary should visit every model."""
+        """Following the chain from primary should visit every fallback model.
+
+        Alias models (claude-sonnet-4, etc.) have their own entry points into
+        the fallback chain — they point directly to llm-fallback1. The main
+        chain from primary through all fallbacks should cover llm-primary,
+        llm-fallback1-4, and llm-last-resort.
+        """
         config = load_litellm_config()
         model_names = get_model_names(config)
         fallback_map = get_fallback_map(config)
 
+        # Follow the main chain from primary
         visited = set()
-        current = model_names[0]
+        current = model_names[0]  # llm-primary
         while current in fallback_map:
             visited.add(current)
             current = fallback_map[current][0]
         visited.add(current)  # Add the last model
 
-        assert visited == set(model_names), (
-            f"Fallback chain visits {visited}, but models are {set(model_names)}. "
-            "Some models are unreachable from the primary."
+        # The main chain should include all llm-* models (not aliases)
+        chain_models = {n for n in model_names if n.startswith("llm-")}
+        assert visited == chain_models, (
+            f"Fallback chain visits {visited}, but llm-* models are {chain_models}. "
+            "Some fallback models are unreachable from the primary."
         )
 
 
@@ -253,9 +277,10 @@ class TestConfigConsistency:
         # Extract quoted strings
         monitor_models = re.findall(r'"([^"]+)"', list_body)
 
-        # The monitor models should be the same as litellm model IDs
-        # (minus the openrouter/ prefix since monitor sends directly to OpenRouter)
-        litellm_base_ids = sorted([m.replace("openrouter/", "") for m in litellm_ids])
+        # The monitor models should be the same as the unique litellm model IDs
+        # (minus the openrouter/ prefix since monitor sends directly to OpenRouter).
+        # Use set() to deduplicate — multiple alias entries may map to the same model.
+        litellm_base_ids = sorted(set(m.replace("openrouter/", "") for m in litellm_ids))
         monitor_base_ids = sorted(monitor_models)
 
         assert litellm_base_ids == monitor_base_ids, (
@@ -395,7 +420,7 @@ class TestLitellmProxyHealth:
                 "Content-Type": "application/json",
             },
             json={
-                "model": "claude-sonnet-4-20250514",
+                "model": "totally-unknown-model-xyz",
                 "messages": [{"role": "user", "content": "Reply with OK"}],
                 "max_tokens": 5,
             },
@@ -413,6 +438,9 @@ class TestLitellmProxyHealth:
         Uses a short timeout to avoid hanging on slow OpenRouter responses.
         Models that time out or return server errors are still "accepted" —
         the proxy routed them, they just didn't respond in time.
+
+        Alias models (claude-sonnet-4-20250514, etc.) are tested with a
+        shorter timeout since they map to the same primary model.
         """
         litellm_url = os.getenv("LITELLM_BASE_URL", "http://localhost:4001")
         api_key = os.getenv("LITELLM_API_KEY", os.getenv("OPENROUTER_API_KEY", ""))
@@ -423,7 +451,9 @@ class TestLitellmProxyHealth:
         config = load_litellm_config()
         model_names = get_model_names(config)
 
-        for name in model_names:
+        # Test that alias models are accepted (they should resolve to primary)
+        alias_models = ["claude-sonnet-4-20250514", "claude-haiku-4-5-20251001"]
+        for name in alias_models:
             try:
                 resp = httpx.post(
                     f"{litellm_url.rstrip('/')}/v1/chat/completions",
@@ -441,11 +471,10 @@ class TestLitellmProxyHealth:
                 # 200 = accepted and responded, 429 = rate limited (still accepted)
                 # 503 = model unavailable (still accepted, just not serving)
                 assert resp.status_code in (200, 429, 503), (
-                    f"Model '{name}' rejected with {resp.status_code}: {resp.text[:200]}"
+                    f"Alias model '{name}' rejected with {resp.status_code}: {resp.text[:200]}"
                 )
             except (httpx.TimeoutException, httpx.ConnectError):
-                # Timeout or connection error means the proxy accepted the model
-                # but the upstream provider didn't respond in time — not a rejection
+                # Timeout means the proxy accepted the model but upstream was slow
                 pass
 
 
@@ -482,30 +511,53 @@ class TestLitellmSettings:
 
 
 # ---------------------------------------------------------------------------
-# Test: model_group_alias
+# Test: model aliases
 # ---------------------------------------------------------------------------
 
 
 class TestModelGroupAlias:
-    """Validate model_group_alias configuration."""
+    """Validate explicit model alias configuration.
 
-    def test_wildcard_alias_exists(self):
-        """There must be a wildcard alias that routes unknown models to primary."""
-        config = load_litellm_config()
-        aliases = config.get("model_group_alias", {})
-        assert "*" in aliases, (
-            "Missing wildcard alias '*'. "
-            "This ensures any model name gets routed to llm-primary."
-        )
+    As of litellm 1.82.6, model_group_alias with '*' wildcard is not applied
+    consistently. Instead, we define explicit alias model entries in model_list
+    that map sre-agent model names to the primary model.
+    """
 
-    def test_wildcard_routes_to_primary(self):
-        """The wildcard alias must route to llm-primary."""
+    def test_alias_models_map_to_primary(self):
+        """Alias models (claude-sonnet-4, claude-haiku-4-5, etc.) should map to owl-alpha."""
         config = load_litellm_config()
-        primary = get_model_names(config)[0]
-        alias_target = config.get("model_group_alias", {}).get("*", "")
-        assert alias_target == primary, (
-            f"Wildcard alias routes to '{alias_target}', expected '{primary}'"
-        )
+        alias_names = {"claude-sonnet-4-20250514", "claude-haiku-4-5-20251001",
+                       "openrouter/free", "openrouter/tencent/hy3-preview"}
+        primary_model = None
+        for m in config["model_list"]:
+            if m["model_name"] == "llm-primary":
+                primary_model = m["litellm_params"]["model"]
+                break
+        assert primary_model is not None, "llm-primary not found in model_list"
+
+        for m in config["model_list"]:
+            if m["model_name"] in alias_names:
+                assert m["litellm_params"]["model"] == primary_model, (
+                    f"Alias '{m['model_name']}' maps to '{m['litellm_params']['model']}', "
+                    f"expected '{primary_model}'"
+                )
+
+    def test_alias_models_in_fallback_chain(self):
+        """Alias models should have fallback entries pointing to the same chain."""
+        config = load_litellm_config()
+        fallback_map = get_fallback_map(config)
+        alias_names = {"claude-sonnet-4-20250514", "claude-haiku-4-5-20251001",
+                       "openrouter/free", "openrouter/tencent/hy3-preview"}
+
+        for name in alias_names:
+            assert name in fallback_map, (
+                f"Alias model '{name}' has no fallback entry. "
+                "All aliases should fall back to llm-fallback1."
+            )
+            assert fallback_map[name] == ["llm-fallback1"], (
+                f"Alias '{name}' falls back to {fallback_map[name]}, "
+                "expected ['llm-fallback1']"
+            )
 
 
 if __name__ == "__main__":

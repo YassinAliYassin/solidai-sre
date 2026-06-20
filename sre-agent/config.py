@@ -371,7 +371,9 @@ def load_team_config() -> TeamConfig:
             "SOLIDAI_SRE_TEAM_ID must be set. Cannot load team configuration."
         )
 
-    resp = httpx.get(url, headers=headers, timeout=10.0)
+    from http_client import get_sync_client
+    sync_client = get_sync_client()
+    resp = sync_client.get(url, headers=headers, timeout=10.0)
     resp.raise_for_status()
 
     data = resp.json()

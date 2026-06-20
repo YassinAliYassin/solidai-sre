@@ -18,8 +18,10 @@ import time
 import uuid
 from typing import Dict, List, Optional
 
-import httpx
 from dotenv import load_dotenv
+
+# Shared HTTP client with connection pooling
+from http_client import get_client, get_sync_client, close_client  # noqa: E402
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -49,6 +51,12 @@ app = FastAPI(
     description="AI SRE agent for incident investigation - LangGraph mode",
     version="0.4.0",
 )
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Close shared HTTP client on app shutdown."""
+    await close_client()
 
 
 class ImageData(BaseModel):
@@ -109,12 +117,12 @@ async def system_status():
     config_url = os.getenv("CONFIG_SERVICE_URL", "")
     if config_url:
         try:
-            async with httpx.AsyncClient(timeout=httpx.Timeout(5.0)) as client:
-                resp = await client.get(f"{config_url.rstrip('/')}/health")
-                services["config_service"] = {
-                    "status": "healthy" if resp.status_code == 200 else "degraded",
-                    "latency_ms": int(resp.elapsed.total_seconds() * 1000),
-                }
+            client = get_client()
+            resp = await client.get(f"{config_url.rstrip('/')}/health")
+            services["config_service"] = {
+                "status": "healthy" if resp.status_code == 200 else "degraded",
+                "latency_ms": int(resp.elapsed.total_seconds() * 1000),
+            }
         except Exception as e:
             services["config_service"] = {"status": "unreachable", "error": str(e)[:200]}
     else:
@@ -129,12 +137,12 @@ async def system_status():
             # Use /health/readiness instead of /health — the full /health endpoint
             # tries to ping all configured models (including fallbacks) and hangs
             # when any model (e.g. openrouter/free) is unreachable.
-            async with httpx.AsyncClient(timeout=httpx.Timeout(5.0)) as client:
-                resp = await client.get(f"{litellm_root}/health/readiness")
-                services["litellm"] = {
-                    "status": "healthy" if resp.status_code == 200 else "degraded",
-                    "latency_ms": int(resp.elapsed.total_seconds() * 1000),
-                }
+            client = get_client()
+            resp = await client.get(f"{litellm_root}/health/readiness")
+            services["litellm"] = {
+                "status": "healthy" if resp.status_code == 200 else "degraded",
+                "latency_ms": int(resp.elapsed.total_seconds() * 1000),
+            }
         except Exception as e:
             services["litellm"] = {"status": "unreachable", "error": str(e)[:200]}
     else:
@@ -213,15 +221,15 @@ async def proxy_file(token: str, request: Request):
 
     async def stream_file():
         try:
-            async with httpx.AsyncClient(timeout=httpx.Timeout(300.0)) as client:
-                async with client.stream(
-                    "GET",
-                    info["download_url"],
-                    headers={"Authorization": info["auth_header"]},
-                ) as response:
-                    response.raise_for_status()
-                    async for chunk in response.aiter_bytes():
-                        yield chunk
+            client = get_client()
+            async with client.stream(
+                "GET",
+                info["download_url"],
+                headers={"Authorization": info["auth_header"]},
+            ) as response:
+                response.raise_for_status()
+                async for chunk in response.aiter_bytes():
+                    yield chunk
         except Exception as e:
             logger.error(f"Failed to proxy file: {e}")
             raise HTTPException(500, f"Failed to download file: {e}")
@@ -673,16 +681,16 @@ def _download_file_attachments(file_downloads: list, thread_id: str):
             logger.info(
                 f"Downloading {safe_filename} ({download.get('size', '?')} bytes) from Slack..."
             )
-            with httpx.Client(timeout=httpx.Timeout(300.0)) as client:
-                with client.stream(
-                    "GET",
-                    token_info["download_url"],
-                    headers={"Authorization": token_info["auth_header"]},
-                ) as response:
-                    response.raise_for_status()
-                    with open(file_path, "wb") as f:
-                        for chunk in response.iter_bytes(chunk_size=65536):
-                            f.write(chunk)
+            sync_client = get_sync_client()
+            with sync_client.stream(
+                "GET",
+                token_info["download_url"],
+                headers={"Authorization": token_info["auth_header"]},
+            ) as response:
+                response.raise_for_status()
+                with open(file_path, "wb") as f:
+                    for chunk in response.iter_bytes(chunk_size=65536):
+                        f.write(chunk)
 
             logger.info(f"Saved: {file_path}")
         except Exception as e:
@@ -708,23 +716,23 @@ async def _record_run_start(
     if not _CONFIG_SERVICE_URL:
         return False
     try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(5.0)) as client:
-            resp = await client.post(
-                f"{_CONFIG_SERVICE_URL}/api/v1/internal/agent-runs",
-                headers=_INTERNAL_SERVICE_HEADER,
-                json={
-                    "run_id": run_id,
-                    "org_id": os.getenv("SOLIDAI_SRE_TENANT_ID", "local"),
-                    "team_node_id": os.getenv("SOLIDAI_SRE_TEAM_ID", "default"),
-                    "correlation_id": thread_id,
-                    "agent_name": agent_name,
-                    "trigger_source": trigger_source,
-                    "trigger_message": prompt[:500] if prompt else None,
-                },
-            )
-            resp.raise_for_status()
-            logger.info(f"Recorded agent run start: {run_id}")
-            return True
+        client = get_client()
+        resp = await client.post(
+            f"{_CONFIG_SERVICE_URL}/api/v1/internal/agent-runs",
+            headers=_INTERNAL_SERVICE_HEADER,
+            json={
+                "run_id": run_id,
+                "org_id": os.getenv("SOLIDAI_SRE_TENANT_ID", "local"),
+                "team_node_id": os.getenv("SOLIDAI_SRE_TEAM_ID", "default"),
+                "correlation_id": thread_id,
+                "agent_name": agent_name,
+                "trigger_source": trigger_source,
+                "trigger_message": prompt[:500] if prompt else None,
+            },
+        )
+        resp.raise_for_status()
+        logger.info(f"Recorded agent run start: {run_id}")
+        return True
     except Exception as e:
         logger.warning(f"Failed to record run start (non-fatal): {e}")
         return False
@@ -748,18 +756,18 @@ async def _record_tool_calls(run_id: str, tool_calls: list) -> bool:
     if not _CONFIG_SERVICE_URL or not tool_calls:
         return False
     try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
-            resp = await client.post(
-                f"{_CONFIG_SERVICE_URL}/api/v1/internal/agent-runs/{run_id}/tool-calls",
-                headers=_INTERNAL_SERVICE_HEADER,
-                json={
-                    "run_id": run_id,
-                    "tool_calls": tool_calls,
-                },
-            )
-            resp.raise_for_status()
-            logger.info(f"Recorded {len(tool_calls)} tool calls for run {run_id}")
-            return True
+        client = get_client()
+        resp = await client.post(
+            f"{_CONFIG_SERVICE_URL}/api/v1/internal/agent-runs/{run_id}/tool-calls",
+            headers=_INTERNAL_SERVICE_HEADER,
+            json={
+                "run_id": run_id,
+                "tool_calls": tool_calls,
+            },
+        )
+        resp.raise_for_status()
+        logger.info(f"Recorded {len(tool_calls)} tool calls for run {run_id}")
+        return True
     except Exception as e:
         logger.warning(f"Failed to record tool calls (non-fatal): {e}")
         return False
@@ -770,14 +778,14 @@ async def _record_thoughts(run_id: str, thoughts: list) -> bool:
     if not _CONFIG_SERVICE_URL or not thoughts:
         return False
     try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(5.0)) as client:
-            resp = await client.put(
-                f"{_CONFIG_SERVICE_URL}/api/v1/internal/agent-runs/{run_id}/thoughts",
-                headers=_INTERNAL_SERVICE_HEADER,
-                json={"thoughts": thoughts},
-            )
-            resp.raise_for_status()
-            return True
+        client = get_client()
+        resp = await client.put(
+            f"{_CONFIG_SERVICE_URL}/api/v1/internal/agent-runs/{run_id}/thoughts",
+            headers=_INTERNAL_SERVICE_HEADER,
+            json={"thoughts": thoughts},
+        )
+        resp.raise_for_status()
+        return True
     except Exception as e:
         logger.debug(f"Failed to record thoughts (non-fatal): {e}")
         return False
@@ -807,15 +815,15 @@ async def _record_run_complete(
         }
         if output_json:
             body["output_json"] = output_json
-        async with httpx.AsyncClient(timeout=httpx.Timeout(5.0)) as client:
-            resp = await client.patch(
-                f"{_CONFIG_SERVICE_URL}/api/v1/internal/agent-runs/{run_id}",
-                headers=_INTERNAL_SERVICE_HEADER,
-                json=body,
-            )
-            resp.raise_for_status()
-            logger.info(f"Recorded agent run complete: {run_id} ({status})")
-            return True
+        client = get_client()
+        resp = await client.patch(
+            f"{_CONFIG_SERVICE_URL}/api/v1/internal/agent-runs/{run_id}",
+            headers=_INTERNAL_SERVICE_HEADER,
+            json=body,
+        )
+        resp.raise_for_status()
+        logger.info(f"Recorded agent run complete: {run_id} ({status})")
+        return True
     except Exception as e:
         logger.warning(f"Failed to record run completion (non-fatal): {e}")
         return False
@@ -907,31 +915,32 @@ async def _generate_timeout_summary(
         request_body["system"] = writeup_system_prompt[:4000]
 
     try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
-            resp = await client.post(
-                f"{base_url}/v1/messages",
-                headers={
-                    "x-api-key": api_key,
-                    "anthropic-version": "2023-06-01",
-                    "content-type": "application/json",
-                },
-                json=request_body,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            # Find the text block (MiniMax may prepend a "thinking" block)
-            summary = next(
-                (b["text"] for b in data.get("content", []) if b.get("type") == "text"),
-                None,
-            )
-            if not summary:
-                logger.warning("[TIMEOUT-SUMMARY] No text block in LLM response")
-                return None
-            logger.info(
-                f"[TIMEOUT-SUMMARY] Generated {len(summary)}-char summary from "
-                f"{len(evidence_items)} evidence items"
-            )
-            return summary
+        client = get_client()
+        resp = await client.post(
+            f"{base_url}/v1/messages",
+            headers={
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            json=request_body,
+            timeout=60.0,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        # Find the text block (MiniMax may prepend a "thinking" block)
+        summary = next(
+            (b["text"] for b in data.get("content", []) if b.get("type") == "text"),
+            None,
+        )
+        if not summary:
+            logger.warning("[TIMEOUT-SUMMARY] No text block in LLM response")
+            return None
+        logger.info(
+            f"[TIMEOUT-SUMMARY] Generated {len(summary)}-char summary from "
+            f"{len(evidence_items)} evidence items"
+        )
+        return summary
     except Exception as e:
         logger.warning(
             f"[TIMEOUT-SUMMARY] LLM call failed (non-fatal): "
@@ -1127,25 +1136,26 @@ async def _generate_investigation_writeup(
         request_body["system"] = writeup_system_prompt[:4000]
 
     try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(90.0)) as client:
-            resp = await client.post(
-                f"{base_url}/v1/messages",
-                headers={
-                    "x-api-key": api_key,
-                    "anthropic-version": "2023-06-01",
-                    "content-type": "application/json",
-                },
-                json=request_body,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            raw_text = next(
-                (b["text"] for b in data.get("content", []) if b.get("type") == "text"),
-                None,
-            )
-            if not raw_text:
-                logger.warning("[WRITEUP] No text block in LLM response")
-                return None, None
+        client = get_client()
+        resp = await client.post(
+            f"{base_url}/v1/messages",
+            headers={
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            json=request_body,
+            timeout=90.0,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        raw_text = next(
+            (b["text"] for b in data.get("content", []) if b.get("type") == "text"),
+            None,
+        )
+        if not raw_text:
+            logger.warning("[WRITEUP] No text block in LLM response")
+            return None, None
 
             # Try to parse as JSON
             report_json = None

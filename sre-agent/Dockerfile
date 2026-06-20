@@ -21,7 +21,7 @@ COPY pyproject.toml .
 RUN uv pip install --system -e .
 
 # Copy application code
-COPY graph.py state.py config.py events.py server.py auth.py memory_service.py ./
+COPY graph.py state.py config.py events.py server.py auth.py memory_service.py http_client.py ./
 COPY nodes/ nodes/
 COPY langgraph.json .
 COPY memory/ memory/

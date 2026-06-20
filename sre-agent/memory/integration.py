@@ -11,7 +11,7 @@ import os
 import uuid
 from typing import List, Optional
 
-import httpx
+from http_client import get_sync_client
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,8 @@ def _post(path: str, json: dict) -> Optional[dict]:
     if not CONFIG_SERVICE_URL:
         return None
     try:
-        resp = httpx.post(
+        sync_client = get_sync_client()
+        resp = sync_client.post(
             _config_url(path), json=json, headers=_INTERNAL_HEADERS, timeout=10.0
         )
         resp.raise_for_status()
@@ -74,7 +75,8 @@ def _get(path: str, params: Optional[dict] = None) -> Optional[dict]:
     if not CONFIG_SERVICE_URL:
         return None
     try:
-        resp = httpx.get(
+        sync_client = get_sync_client()
+        resp = sync_client.get(
             _config_url(path), params=params, headers=_INTERNAL_HEADERS, timeout=10.0
         )
         resp.raise_for_status()
@@ -89,7 +91,8 @@ def _put(path: str, json: dict) -> Optional[dict]:
     if not CONFIG_SERVICE_URL:
         return None
     try:
-        resp = httpx.put(
+        sync_client = get_sync_client()
+        resp = sync_client.put(
             _config_url(path), json=json, headers=_INTERNAL_HEADERS, timeout=10.0
         )
         resp.raise_for_status()

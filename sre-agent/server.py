@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 
 # Shared HTTP client with connection pooling
 from http_client import get_client, get_sync_client, close_client  # noqa: E402
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -46,17 +46,22 @@ _background_tasks: Dict[str, asyncio.Task] = {}
 _message_queues: Dict[str, asyncio.Queue] = {}  # Queue for sending prompts
 _response_queues: Dict[str, asyncio.Queue] = {}  # Queue for receiving events
 
+from contextlib import asynccontextmanager
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan — startup and shutdown."""
+    yield
+    await close_client()
+
+
 app = FastAPI(
     title="SolidAI SRE Investigation Server (LangGraph)",
     description="AI SRE agent for incident investigation - LangGraph mode",
     version="0.4.0",
+    lifespan=lifespan,
 )
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Close shared HTTP client on app shutdown."""
-    await close_client()
 
 
 class ImageData(BaseModel):
@@ -1443,6 +1448,202 @@ async def answer(request: AnswerRequest):
     # graph.update_state(config, {"human_answer": request.answers})
 
     return {"status": "ok", "thread_id": request.thread_id}
+
+
+# -------------------------------------------------------------------------
+# WebSocket endpoint for bidirectional agent communication
+# -------------------------------------------------------------------------
+
+
+class WSInvestigateRequest(BaseModel):
+    prompt: str
+    thread_id: Optional[str] = None
+    images: Optional[List[ImageData]] = None
+
+
+@app.websocket("/ws/investigate")
+async def ws_investigate(websocket: WebSocket):
+    """
+    WebSocket endpoint for bidirectional investigation streaming.
+
+    Accepts JSON messages from client:
+        {"prompt": "...", "thread_id": "...", "images": [...]}
+
+    Sends JSON messages to client:
+        {"type": "thought", "data": {...}, "thread_id": "...", "timestamp": "..."}
+        {"type": "tool_call", "data": {...}, "thread_id": "...", "timestamp": "..."}
+        {"type": "result", "data": {...}, "thread_id": "...", "timestamp": "..."}
+        {"type": "error", "data": {...}, "thread_id": "...", "timestamp": "..."}
+        {"type": "done", "thread_id": "...", "timestamp": "..."}
+        {"type": "pong", "timestamp": "..."}  # keepalive response
+
+    Supports bidirectional communication: clients can send new prompts
+    while receiving events from a running investigation.
+    """
+    await websocket.accept()
+    logger.info("WebSocket connection accepted")
+
+    # Track active subscriptions per thread for this connection
+    _ws_subscriptions: Dict[str, asyncio.Task] = {}
+
+    try:
+        while True:
+            # Receive message from client (non-blocking with timeout for cleanup)
+            try:
+                raw = await asyncio.wait_for(
+                    websocket.receive_text(),
+                    timeout=60.0,
+                )
+            except asyncio.TimeoutError:
+                # Send keepalive ping
+                await websocket.send_json({"type": "ping", "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()})
+                # Clean up finished subscriptions
+                _cleanup_ws_subscriptions(_ws_subscriptions)
+                continue
+
+            # Parse message
+            try:
+                msg = json.loads(raw)
+            except json.JSONDecodeError:
+                await websocket.send_json({
+                    "type": "error",
+                    "data": {"message": "Invalid JSON"},
+                    "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                })
+                continue
+
+            # Handle ping/pong
+            if msg.get("type") == "ping":
+                await websocket.send_json({
+                    "type": "pong",
+                    "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                })
+                continue
+
+            # Handle close request
+            if msg.get("type") == "close":
+                break
+
+            # Handle investigation request
+            prompt = msg.get("prompt")
+            if not prompt:
+                await websocket.send_json({
+                    "type": "error",
+                    "data": {"message": "Missing 'prompt' field"},
+                    "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                })
+                continue
+
+            thread_id = msg.get("thread_id") or f"thread-{uuid.uuid4().hex[:8]}"
+            images = msg.get("images")
+
+            # If there's already a subscription for this thread, send a note
+            if thread_id in _ws_subscriptions:
+                await websocket.send_json({
+                    "type": "info",
+                    "data": {"message": f"Switching to existing thread {thread_id}"},
+                    "thread_id": thread_id,
+                    "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                })
+
+            # Create background task if needed
+            if thread_id not in _background_tasks:
+                logger.info(f"[WS] Creating background task for thread {thread_id}")
+                _message_queues[thread_id] = asyncio.Queue()
+                _response_queues[thread_id] = asyncio.Queue()
+                task = asyncio.create_task(graph_background_task(thread_id))
+                _background_tasks[thread_id] = task
+
+            # Send message to background task
+            run_id = f"run-{uuid.uuid4().hex[:12]}"
+            await _record_run_start(run_id, thread_id, prompt, "websocket")
+
+            message_queue = _message_queues[thread_id]
+            response_queue = _response_queues[thread_id]
+
+            await message_queue.put({
+                "prompt": prompt,
+                "images": images,
+                "run_id": run_id,
+                "start_time": time.time(),
+            })
+
+            # Subscribe to response queue and forward events to WebSocket
+            async def subscribe_and_forward(resp_queue: asyncio.Queue, tid: str):
+                try:
+                    while True:
+                        response = await asyncio.wait_for(resp_queue.get(), timeout=120.0)
+                        if response is None:  # Completion signal
+                            await websocket.send_json({
+                                "type": "done",
+                                "thread_id": tid,
+                                "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                            })
+                            break
+                        if "error" in response:
+                            await websocket.send_json({
+                                "type": "error",
+                                "data": {"message": response["error"]},
+                                "thread_id": tid,
+                                "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                            })
+                            break
+                        event_type = response.get("event", "unknown")
+                        data = response.get("data", {})
+                        await websocket.send_json({
+                            "type": event_type,
+                            "data": data,
+                            "thread_id": tid,
+                            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                        })
+                except asyncio.TimeoutError:
+                    await websocket.send_json({
+                        "type": "info",
+                        "data": {"message": "Stream idle timeout — send a new prompt to continue"},
+                        "thread_id": tid,
+                        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                    })
+                except Exception as e:
+                    logger.error(f"[WS] Subscription error: {e}", exc_info=True)
+                finally:
+                    _ws_subscriptions.pop(tid, None)
+
+            # Cancel any existing subscription for this thread
+            if thread_id in _ws_subscriptions:
+                _ws_subscriptions[thread_id].cancel()
+
+            sub_task = asyncio.create_task(subscribe_and_forward(response_queue, thread_id))
+            _ws_subscriptions[thread_id] = sub_task
+
+    except WebSocketDisconnect:
+        logger.info("WebSocket disconnected")
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}", exc_info=True)
+    finally:
+        # Gracefully drain subscription tasks — give in-flight events
+        # a brief window to flush to the client before cancelling.
+        if _ws_subscriptions:
+            await asyncio.sleep(0.05)
+            for task in _ws_subscriptions.values():
+                if not task.done():
+                    task.cancel()
+            # Allow cancelled tasks to complete their cleanup
+            await asyncio.gather(
+                *_ws_subscriptions.values(),
+                return_exceptions=True,
+            )
+            _ws_subscriptions.clear()
+        try:
+            await websocket.close()
+        except Exception:
+            pass
+
+
+def _cleanup_ws_subscriptions(subscriptions: Dict[str, asyncio.Task]):
+    """Remove completed subscription tasks."""
+    finished = [tid for tid, task in subscriptions.items() if task.done()]
+    for tid in finished:
+        del subscriptions[tid]
 
 
 # -------------------------------------------------------------------------

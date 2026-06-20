@@ -13,6 +13,9 @@ Environment variables (from .env or docker-compose):
     ALERT_COOLDOWN       - Seconds before re-alerting on same service (default: 300)
     HISTORY_FILE         - Path to health history JSON file (default: /tmp/health_history.json)
     HISTORY_MAX_ENTRIES  - Max history entries per service (default: 288 = 24h at 5min intervals)
+    LATENCY_THRESHOLD_MS - p95 latency threshold in ms for degradation alerts (default: 5000)
+    ERROR_RATE_THRESHOLD - Error rate (0.0-1.0) that triggers a warning alert (default: 0.3)
+    ERROR_RATE_WINDOW    - Hours for error rate rolling window (default: 1)
 """
 
 import asyncio
@@ -44,6 +47,13 @@ CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL", "60"))
 ALERT_COOLDOWN = int(os.getenv("ALERT_COOLDOWN", "300"))
 HISTORY_FILE = os.getenv("HISTORY_FILE", "/tmp/health_history.json")
 HISTORY_MAX_ENTRIES = int(os.getenv("HISTORY_MAX_ENTRIES", "288"))
+
+# Latency degradation threshold (ms) — p95 above this triggers a degradation alert
+LATENCY_THRESHOLD_MS = int(os.getenv("LATENCY_THRESHOLD_MS", "5000"))
+# Error rate threshold (0.0–1.0) — rolling window error rate above this triggers alert
+ERROR_RATE_THRESHOLD = float(os.getenv("ERROR_RATE_THRESHOLD", "0.3"))
+# Rolling window for error rate calculation (hours)
+ERROR_RATE_WINDOW = int(os.getenv("ERROR_RATE_WINDOW", "1"))
 
 # Service definitions: name -> check function config
 # Uses Docker Compose service names for internal checks
@@ -421,6 +431,74 @@ def get_latency_stats(history: dict, service_name: str, window_hours: int = 24) 
 
 
 # ---------------------------------------------------------------------------
+# Error rate tracking
+# ---------------------------------------------------------------------------
+
+def get_error_rate(history: dict, service_name: str, window_hours: int = None) -> dict:
+    """Calculate error rate for a service over a rolling time window.
+
+    Error rate = (number of non-healthy entries) / (total entries).
+
+    Returns:
+        dict with error_rate (0.0-1.0), total_checks, failed_count, window_hours.
+        Returns None values if no data is available.
+    """
+    if window_hours is None:
+        window_hours = ERROR_RATE_WINDOW
+
+    entries = history.get(service_name, [])
+    if not entries:
+        return {"error_rate": None, "total_checks": 0, "failed_count": 0, "window_hours": window_hours}
+
+    cutoff = (
+        datetime.datetime.now(datetime.timezone.utc)
+        - datetime.timedelta(hours=window_hours)
+    ).isoformat()
+
+    recent = [e for e in entries if e["timestamp"] >= cutoff]
+    if not recent:
+        return {"error_rate": None, "total_checks": 0, "failed_count": 0, "window_hours": window_hours}
+
+    failed = sum(1 for e in recent if e["status"] in ("down", "degraded", "timeout", "unreachable"))
+    total = len(recent)
+    error_rate = round(failed / total, 3) if total > 0 else None
+
+    return {
+        "error_rate": error_rate,
+        "total_checks": total,
+        "failed_count": failed,
+        "window_hours": window_hours,
+    }
+
+
+def check_latency_degradation(history: dict, service_name: str, threshold_ms: int = None) -> dict:
+    """Check if a service's p95 latency exceeds the degradation threshold.
+
+    Returns:
+        dict with degraded (bool), p95_ms, threshold_ms, and details.
+    """
+    if threshold_ms is None:
+        threshold_ms = LATENCY_THRESHOLD_MS
+
+    latency = get_latency_stats(history, service_name, window_hours=ERROR_RATE_WINDOW)
+    if not latency:
+        return {"degraded": False, "p95_ms": None, "threshold_ms": threshold_ms, "reason": "no data"}
+
+    p95 = latency.get("p95_ms")
+    if p95 is None:
+        return {"degraded": False, "p95_ms": None, "threshold_ms": threshold_ms, "reason": "no latency data"}
+    degraded = p95 > threshold_ms
+
+    return {
+        "degraded": degraded,
+        "p95_ms": p95,
+        "threshold_ms": threshold_ms,
+        "avg_ms": latency.get("avg_ms"),
+        "reason": f"p95 latency {p95}ms exceeds threshold {threshold_ms}ms" if degraded else "ok",
+    }
+
+
+# ---------------------------------------------------------------------------
 # Telegram alerting
 # ---------------------------------------------------------------------------
 
@@ -523,6 +601,68 @@ async def process_results(results: list[dict], is_public: bool = False):
         _last_status[name] = status
 
 
+async def _check_error_rates_and_latency(current_results: list[dict]):
+    """After recording history, check error rates and latency degradation.
+
+    This catches gradual degradation patterns that a single-check threshold might miss:
+    - Rolling error rate exceeding ERROR_RATE_THRESHOLD over the configured window
+    - p95 latency exceeding LATENCY_THRESHOLD_MS over the configured window
+
+    Alerts are subject to the same cooldown as regular status-change alerts.
+    Uses _last_alert_time with a special key suffix to avoid conflicting with
+    regular status-change alert cooldowns.
+    """
+    history = _load_history()
+    now = time.monotonic()
+
+    for result in current_results:
+        name = result["name"]
+        status = result["status"]
+
+        # Skip services that are already down/degraded — those are handled by process_results
+        if status in ("down", "degraded"):
+            continue
+
+        # Skip circuit-breaker-opened or not_configured
+        if status in ("skipped", "not_configured"):
+            continue
+
+        # --- Error rate check ---
+        error_rate_key = f"{name}:error_rate"
+        last_error_alert = _last_alert_time.get(error_rate_key, 0)
+        if now - last_error_alert >= ALERT_COOLDOWN:
+            error_rate = get_error_rate(history, name)
+            if error_rate["error_rate"] is not None and error_rate["error_rate"] >= ERROR_RATE_THRESHOLD:
+                message = (
+                    f"⚠️ <b>SolidAI SRE Error Rate Alert</b>\n\n"
+                    f"🔧 <b>{name}</b> error rate is "
+                    f"<code>{error_rate['error_rate'] * 100:.1f}%</code> "
+                    f"({error_rate['failed_count']}/{error_rate['total_checks']} checks "
+                    f"in last {error_rate['window_hours']}h)\n"
+                    f"Time: {result['timestamp'][:19]} UTC\n"
+                    f"Threshold: {ERROR_RATE_THRESHOLD * 100:.0f}%"
+                )
+                await send_telegram(message)
+                _last_alert_time[error_rate_key] = now
+
+        # --- Latency degradation check ---
+        latency_key = f"{name}:latency"
+        last_latency_alert = _last_alert_time.get(latency_key, 0)
+        if now - last_latency_alert >= ALERT_COOLDOWN:
+            degradation = check_latency_degradation(history, name)
+            if degradation["degraded"]:
+                message = (
+                    f"🐌 <b>SolidAI SRE Latency Degradation</b>\n\n"
+                    f"🔧 <b>{name}</b> p95 latency is "
+                    f"<code>{degradation['p95_ms']}ms</code> "
+                    f"(avg: {degradation.get('avg_ms', '?')}ms)\n"
+                    f"Threshold: {degradation['threshold_ms']}ms\n"
+                    f"Time: {result['timestamp'][:19]} UTC"
+                )
+                await send_telegram(message)
+                _last_alert_time[latency_key] = now
+
+
 async def run_health_check():
     """Run a single health check cycle."""
     logger.info("Running health checks...")
@@ -542,6 +682,9 @@ async def run_health_check():
     # Record history for all results
     all_results = internal_results + public_results + integration_results
     _record_history(all_results)
+
+    # Check error rates and latency degradation for all services
+    await _check_error_rates_and_latency(all_results)
 
     # Log summary
     healthy = sum(1 for r in all_results if r["status"] == "healthy")
@@ -672,6 +815,34 @@ async def get_health_summary():
         "down_count": sum(1 for s in services_summary if s["status"] == "down"),
         "skipped_count": sum(1 for s in services_summary if s["status"] == "skipped"),
     })
+
+
+@_api_app.get("/api/error-rates")
+async def get_error_rates(window_hours: int = None):
+    """Get error rates and latency degradation status for all services.
+
+    Returns per-service error rate (rolling window) and whether latency
+    is degraded beyond the configured threshold.
+    """
+    if window_hours is None:
+        window_hours = ERROR_RATE_WINDOW
+    history = _load_history()
+    response = {}
+    for name, entries in history.items():
+        error_rate = get_error_rate(history, name, window_hours)
+        latency_deg = check_latency_degradation(history, name)
+        recent_entries = entries[-5:]  # Last 5 entries for quick context
+        response[name] = {
+            "error_rate": error_rate,
+            "latency_degradation": {
+                "degraded": latency_deg["degraded"],
+                "p95_ms": latency_deg["p95_ms"],
+                "threshold_ms": latency_deg["threshold_ms"],
+                "reason": latency_deg["reason"],
+            },
+            "recent": recent_entries,
+        }
+    return _JSONResponse(response)
 
 
 async def _check_litellm_model(model_name: str, timeout: float = 25.0) -> dict:

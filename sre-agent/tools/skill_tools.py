@@ -42,7 +42,8 @@ def _resolve_skill_dir(skill_name: str, skills_dir: str) -> Optional[Path]:
                         fm_name = line.split(":", 1)[1].strip()
                         if fm_name == skill_name:
                             return skill_dir
-        except Exception:
+        except Exception as e:
+            logger.debug(f"Error reading skill frontmatter for {skill_dir.name}: {e}")
             continue
     return None
 
@@ -144,8 +145,10 @@ def make_run_script(
                                 if line.startswith("name:"):
                                     fm_name = line.split(":", 1)[1].strip()
                                     break
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug(
+                            f"Error reading frontmatter for skill '{skill_dir_name}': {e}"
+                        )
                     if (
                         fm_name not in enabled_skills
                         and skill_dir_name not in enabled_skills

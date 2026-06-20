@@ -54,9 +54,9 @@ class KubernetesGraphTools:
                     password=NEO4J_PASSWORD,
                     database=NEO4J_DATABASE,
                 )
-            except Exception:
+            except Exception as e:
                 logger.warning(
-                    "Neo4j schema refresh failed (APOC?), retrying without schema"
+                    f"Neo4j schema refresh failed (APOC?), retrying without schema: {e}"
                 )
                 self.graph = Neo4jGraph(
                     url=NEO4J_URI,

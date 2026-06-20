@@ -90,8 +90,9 @@ def get_skill_catalog(
                         fm_name = line.split(":", 1)[1].strip()
                     elif line.startswith("description:"):
                         description = line.split(":", 1)[1].strip()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Error reading frontmatter for skill '{dir_name}': {e}")
+            description = ""
 
         # Filter by enabled skills
         if enabled_skills is not None:

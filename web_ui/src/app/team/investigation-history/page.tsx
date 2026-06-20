@@ -21,7 +21,7 @@ export default function InvestigationHistoryPage() {
   const [loadingEpisodes, setLoadingEpisodes] = useState(true);
 
   useEffect(() => {
-    const fetch = async () => {
+    const loadEpisodes = async () => {
       setLoadingEpisodes(true);
       try {
         const res = await fetch('/api/memory/episodes');
@@ -34,7 +34,7 @@ export default function InvestigationHistoryPage() {
         setLoadingEpisodes(false);
       }
     };
-    if (!loading) fetch();
+    if (!loading) loadEpisodes();
   }, [loading]);
 
   if (loading) return <Loader2 className="animate-spin" />;

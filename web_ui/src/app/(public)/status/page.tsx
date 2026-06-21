@@ -64,9 +64,32 @@ interface ServiceHistory {
   }>;
 }
 
+interface Incident {
+  service_name: string;
+  status: string;
+  start_time: string;
+  end_time: string | null;
+  duration_seconds: number | null;
+}
+
+interface ModelHealthInfo {
+  status: string;
+  models?: Array<{
+    name: string;
+    status: string;
+    latency_ms?: number;
+    error?: string;
+  }>;
+  litellm_version?: string;
+  db?: string;
+  cache?: string | null;
+}
+
 interface StatusData {
   summary: HealthSummary | null;
   history: Record<string, ServiceHistory> | null;
+  incidents: Incident[] | null;
+  model_health: ModelHealthInfo | null;
   generated_at: string;
 }
 
@@ -278,6 +301,193 @@ function ServiceCard({
   );
 }
 
+function formatDuration(seconds: number | null): string {
+  if (seconds === null) return "Ongoing";
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  if (days > 0) return `${days}d ${hours % 24}h`;
+  if (hours > 0) return `${hours}h ${minutes % 60}m`;
+  return `${minutes}m`;
+}
+
+// ── Incident Timeline ───────────────────────────────────────────────────────
+
+function IncidentTimeline({ incidents }: { incidents: Incident[] | null }) {
+  if (!incidents || incidents.length === 0) {
+    return (
+      <section>
+        <h2 className="text-sm font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+          <Clock className="w-4 h-4" />
+          Recent Incidents
+        </h2>
+        <div className="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 p-6 text-center">
+          <CheckCircle className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
+          <p className="text-sm text-stone-600 dark:text-stone-400">
+            No incidents in the last 24 hours
+          </p>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section>
+      <h2 className="text-sm font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+        <Clock className="w-4 h-4" />
+        Recent Incidents
+        <span className="ml-auto text-xs font-normal normal-case tracking-normal text-stone-400">
+          Last 24 hours
+        </span>
+      </h2>
+      <div className="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 divide-y divide-stone-100 dark:divide-stone-700">
+        {incidents.slice(0, 10).map((inc, i) => {
+          const isOngoing = inc.end_time === null;
+          const isDown = inc.status === "down";
+          return (
+            <div key={i} className="px-5 py-3.5 flex items-center gap-4">
+              <div
+                className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                  isDown ? "bg-red-500" : "bg-amber-500"
+                } ${isOngoing ? "animate-pulse" : ""}`}
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm text-stone-900 dark:text-white truncate">
+                    {inc.service_name}
+                  </span>
+                  <span
+                    className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${
+                      isDown
+                        ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400"
+                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
+                    }`}
+                  >
+                    {inc.status}
+                  </span>
+                  {isOngoing && (
+                    <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400">
+                      Ongoing
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+                  {new Date(inc.start_time).toLocaleString()}
+                  {!isOngoing && inc.end_time && (
+                    <span> → {new Date(inc.end_time).toLocaleString()}</span>
+                  )}
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <div
+                  className={`text-sm font-semibold ${
+                    isOngoing
+                      ? "text-blue-600 dark:text-blue-400"
+                      : isDown
+                        ? "text-red-600 dark:text-red-400"
+                        : "text-amber-600 dark:text-amber-400"
+                  }`}
+                >
+                  {formatDuration(inc.duration_seconds)}
+                </div>
+                <div className="text-[10px] text-stone-400">duration</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+// ── Model Health ─────────────────────────────────────────────────────────────
+
+function ModelHealthSection({ modelHealth }: { modelHealth: ModelHealthInfo | null }) {
+  if (!modelHealth) return null;
+
+  const isHealthy = modelHealth.status === "healthy" || modelHealth.status === "ok";
+
+  return (
+    <section>
+      <h2 className="text-sm font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+        <Activity className="w-4 h-4" />
+        AI Model Health
+      </h2>
+      <div
+        className={`rounded-xl border ${
+          isHealthy
+            ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20"
+            : "border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20"
+        } p-4`}
+      >
+        <div className="flex items-center gap-3 mb-3">
+          <span
+            className={`w-2.5 h-2.5 rounded-full ${
+              isHealthy ? "bg-emerald-500" : "bg-amber-500"
+            }`}
+          />
+          <span className="text-sm font-medium text-stone-900 dark:text-white">
+            LiteLLM Proxy
+          </span>
+          <span
+            className={`text-xs ${
+              isHealthy
+                ? "text-emerald-700 dark:text-emerald-400"
+                : "text-amber-700 dark:text-amber-400"
+            }`}
+          >
+            {isHealthy ? "Operational" : "Degraded"}
+          </span>
+          {modelHealth.litellm_version && (
+            <span className="text-[10px] text-stone-400 ml-auto">
+              v{modelHealth.litellm_version}
+            </span>
+          )}
+        </div>
+
+        {modelHealth.models && modelHealth.models.length > 0 && (
+          <div className="grid gap-2">
+            {modelHealth.models.map((model, i) => {
+              const modelOk = model.status === "healthy" || model.status === "ok";
+              return (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/60 dark:bg-stone-800/60 border border-stone-200/50 dark:border-stone-700/50"
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      modelOk ? "bg-emerald-500" : "bg-red-500"
+                    }`}
+                  />
+                  <span className="text-sm text-stone-700 dark:text-stone-300 font-mono">
+                    {model.name}
+                  </span>
+                  {model.latency_ms != null && (
+                    <span className="text-xs text-stone-500">
+                      {formatLatency(model.latency_ms)}
+                    </span>
+                  )}
+                  {model.error && (
+                    <span className="text-xs text-red-500 ml-auto truncate max-w-[200px]">
+                      {model.error}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="flex items-center gap-4 mt-3 pt-2 border-t border-stone-200/50 dark:border-stone-700/50 text-[10px] text-stone-400">
+          <span>DB: {modelHealth.db || "—"}</span>
+          <span>Cache: {modelHealth.cache || "none"}</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── Overall Status Banner ───────────────────────────────────────────────────
 
 function OverallBanner({ summary }: { summary: HealthSummary | null }) {
@@ -472,6 +682,12 @@ export default function StatusPage() {
                 <div className="text-xs text-stone-500">Down</div>
               </div>
             </div>
+
+            {/* Incident Timeline */}
+            <IncidentTimeline incidents={data?.incidents || null} />
+
+            {/* Model Health */}
+            <ModelHealthSection modelHealth={data?.model_health || null} />
 
             {/* Public Endpoints */}
             {publicServices.length > 0 && (

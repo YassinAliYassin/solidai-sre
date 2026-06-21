@@ -44,6 +44,12 @@ model_list:
       model: openrouter/owl-alpha
       api_key: os.environ/OPENROUTER_API_KEY
 
+  # Alias: gpt-5.2 → llm-primary (config-service default model name)
+  - model_name: "gpt-5.2"
+    litellm_params:
+      model: openrouter/owl-alpha
+      api_key: os.environ/OPENROUTER_API_KEY
+
   # Fallback 1: GPT-OSS 20B (free, 131K context) — fast, good agentic
   - model_name: "llm-fallback1"
     litellm_params:
@@ -90,6 +96,7 @@ router_settings:
     - claude-haiku-4-5-20251001: ["llm-fallback1"]
     - openrouter/free: ["llm-fallback1"]
     - openrouter/tencent/hy3-preview: ["llm-fallback1"]
+    - "gpt-5.2": ["llm-fallback1"]
     - llm-fallback1: ["llm-fallback2"]
     - llm-fallback2: ["llm-fallback3"]
     - llm-fallback3: ["llm-fallback4"]

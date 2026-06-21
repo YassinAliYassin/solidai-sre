@@ -216,7 +216,7 @@ async def memory_health():
             "error": str(e)[:200],
         }
 
-    # Check 2: Episode storage pipeline (write + read back)
+    # Check 2: Episode storage pipeline (write + read back + cleanup)
     import uuid
 
     test_id = f"health-check-{uuid.uuid4().hex[:8]}"
@@ -240,7 +240,7 @@ async def memory_health():
         "duration_seconds": 0.0,
     }
     try:
-        from memory.integration import _post, _get
+        from memory.integration import _post, _get, _delete
 
         post_result = _post("/episodes", test_episode)
         if post_result and post_result.get("id"):
@@ -260,12 +260,26 @@ async def memory_health():
                 "status": "degraded",
                 "error": "GET /episodes/{id} could not read back test episode",
             }
+
+        # Clean up test episode — prevent accumulation of health check artifacts
+        delete_success = _delete(f"/episodes/{test_id}")
+        if delete_success:
+            result["checks"]["episode_cleanup"] = {"status": "healthy"}
+        else:
+            result["checks"]["episode_cleanup"] = {
+                "status": "degraded",
+                "error": "DELETE /episodes/{id} failed — test episode may remain",
+            }
     except Exception as e:
         result["checks"]["episode_write"] = {
             "status": "unreachable",
             "error": str(e)[:200],
         }
         result["checks"]["episode_read"] = {
+            "status": "unreachable",
+            "error": str(e)[:200],
+        }
+        result["checks"]["episode_cleanup"] = {
             "status": "unreachable",
             "error": str(e)[:200],
         }

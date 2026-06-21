@@ -3086,6 +3086,19 @@ def get_episode_endpoint(
     return ep
 
 
+@router.delete("/episodes/{episode_id}", status_code=200)
+def delete_episode_endpoint(
+    episode_id: str,
+    session: Session = Depends(get_db),
+    service_header: str = Depends(require_internal_service),
+):
+    """Delete a single episode by ID."""
+    deleted = repository.delete_episode(session, episode_id=episode_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Episode not found")
+    return {"deleted": True, "id": episode_id}
+
+
 @router.post("/episodes/search")
 def search_episodes_endpoint(
     request: EpisodeSearchRequest,

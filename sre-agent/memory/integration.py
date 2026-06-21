@@ -102,9 +102,24 @@ def _put(path: str, json: dict) -> Optional[dict]:
         return None
 
 
+def _delete(path: str) -> bool:
+    """DELETE to config-service. Returns True on success."""
+    if not CONFIG_SERVICE_URL:
+        return False
+    try:
+        sync_client = get_sync_client()
+        resp = sync_client.delete(
+            _config_url(path), headers=_INTERNAL_HEADERS, timeout=10.0
+        )
+        resp.raise_for_status()
+        return True
+    except Exception as e:
+        logger.error(f"[MEMORY] DELETE {path} failed: {e}")
+        return False
+
+
 # ---------------------------------------------------------------------------
 # Pre-investigation: enhance prompt with memory context
-# ---------------------------------------------------------------------------
 
 
 def enhance_investigation_with_memory(

@@ -319,10 +319,26 @@ def _load_history() -> dict:
 def _save_history(history: dict):
     """Save health history to disk, trimming old entries."""
     try:
-        # Trim entries per service to max allowed
+        # Trim entries per service to max allowed count
         for name in history:
             if len(history[name]) > HISTORY_MAX_ENTRIES:
                 history[name] = history[name][-HISTORY_MAX_ENTRIES:]
+
+        # Age-based cleanup: remove entries older than HISTORY_MAX_AGE_HOURS
+        # Default: 48 hours (2 days) — prevents unbounded file growth
+        max_age_hours = int(os.getenv("HISTORY_MAX_AGE_HOURS", "48"))
+        cutoff = (
+            datetime.datetime.now(datetime.timezone.utc)
+            - datetime.timedelta(hours=max_age_hours)
+        ).isoformat()
+        for name in history:
+            history[name] = [
+                e for e in history[name]
+                if e.get("timestamp", "") >= cutoff
+            ]
+        # Remove services with no remaining entries
+        history = {k: v for k, v in history.items() if v}
+
         with open(HISTORY_FILE, "w") as f:
             json.dump(history, f, indent=2)
     except Exception as e:
@@ -826,8 +842,16 @@ async def _check_error_rates_and_latency(current_results: list[dict]):
                 _last_alert_time[trend_key] = now
 
 
+# Cycle counter for slow-poll integrations (e.g. Telegram bot)
+# Integrations are checked every N cycles to avoid excessive API calls
+_integration_check_interval = int(os.getenv("INTEGRATION_CHECK_INTERVAL", "300"))  # 5 minutes
+_integration_check_counter: int = 0
+_integration_last_results: list = []
+
+
 async def run_health_check():
     """Run a single health check cycle."""
+    global _integration_check_counter, _integration_last_results
     logger.info("Running health checks...")
 
     # Check internal services
@@ -838,12 +862,21 @@ async def run_health_check():
     public_results = await check_public_endpoints()
     await process_results(public_results, is_public=True)
 
-    # Check integrations
-    integration_results = await check_integrations()
-    await process_results(integration_results, is_public=False)
+    # Check integrations on a slower interval (default: every 5 minutes)
+    # This avoids excessive API calls to external services like Telegram
+    _integration_check_counter += 1
+    cycle_interval = max(1, _integration_check_interval // CHECK_INTERVAL)
+    if _integration_check_counter >= cycle_interval:
+        _integration_check_counter = 0
+        _integration_last_results = await check_integrations()
+        await process_results(_integration_last_results, is_public=False)
+    else:
+        logger.debug(
+            f"Skipping integration checks (next in {cycle_interval - _integration_check_counter} cycles)"
+        )
 
     # Record history for all results
-    all_results = internal_results + public_results + integration_results
+    all_results = internal_results + public_results + _integration_last_results
     _record_history(all_results)
 
     # Check error rates and latency degradation for all services

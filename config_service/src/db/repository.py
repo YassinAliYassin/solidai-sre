@@ -2530,6 +2530,20 @@ def get_episode(session: Session, *, episode_id: str) -> Optional[Dict[str, Any]
     return _episode_to_dict(ep) if ep else None
 
 
+def delete_episode(session: Session, *, episode_id: str) -> bool:
+    """Delete a single episode by ID. Returns True if deleted, False if not found."""
+    from src.db.models import InvestigationEpisode
+
+    ep = session.execute(
+        select(InvestigationEpisode).where(InvestigationEpisode.id == episode_id)
+    ).scalar_one_or_none()
+    if not ep:
+        return False
+    session.delete(ep)
+    session.commit()
+    return True
+
+
 def list_episodes(
     session: Session,
     *,

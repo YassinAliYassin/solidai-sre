@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle, XCircle, Clock, ExternalLink } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Clock, ExternalLink, Trash2, AlertTriangle } from 'lucide-react';
 
 interface Episode {
   id: string;
@@ -32,14 +32,49 @@ const severityColors: Record<string, string> = {
 export default function EpisodesPage() {
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cleanupLoading, setCleanupLoading] = useState(false);
+  const [cleanupResult, setCleanupResult] = useState<{deleted: number; matched: number; dry_run: boolean} | null>(null);
+  const [showCleanupConfirm, setShowCleanupConfirm] = useState(false);
 
   useEffect(() => {
+    fetchEpisodes();
+  }, []);
+
+  const fetchEpisodes = () => {
+    setLoading(true);
     fetch('/api/memory/episodes')
       .then(r => r.json())
       .then(data => setEpisodes(data.episodes || []))
       .catch(() => setEpisodes([]))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  const handleCleanup = async (dryRun: boolean) => {
+    setCleanupLoading(true);
+    setCleanupResult(null);
+    try {
+      const res = await fetch('/api/memory/episodes/cleanup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          older_than_hours: 1,
+          alert_type: 'health_check',
+          dry_run: dryRun,
+        }),
+      });
+      const data = await res.json();
+      setCleanupResult({ deleted: data.deleted || 0, matched: data.matched || 0, dry_run: dryRun });
+      if (!dryRun) {
+        // Refresh the list after actual cleanup
+        fetchEpisodes();
+      }
+    } catch (e: any) {
+      setCleanupResult({ deleted: 0, matched: 0, dry_run: dryRun });
+    } finally {
+      setCleanupLoading(false);
+      setShowCleanupConfirm(false);
+    }
+  };
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -48,6 +83,75 @@ export default function EpisodesPage() {
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <h1 className="text-2xl font-bold">Investigation Episodes</h1>
+      </div>
+
+      {/* Cleanup Section */}
+      <div className="mb-6 bg-white dark:bg-stone-700 rounded-lg border p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-stone-700 dark:text-stone-300">Episode Cleanup</h2>
+            <p className="text-xs text-stone-500 mt-0.5">
+              Remove old health-check test episodes to keep the memory store clean.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {cleanupResult && (
+              <span className={`text-xs px-2 py-1 rounded ${
+                cleanupResult.dry_run
+                  ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                  : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+              }`}>
+                {cleanupResult.dry_run
+                  ? `Would delete ${cleanupResult.matched} episodes`
+                  : `Deleted ${cleanupResult.deleted} episodes`
+                }
+              </span>
+            )}
+            <button
+              onClick={() => setShowCleanupConfirm(true)}
+              disabled={cleanupLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-clay-light/10 text-clay-dark dark:bg-clay/20 dark:text-clay-light hover:bg-clay-light/20 dark:hover:bg-clay/30 transition-colors disabled:opacity-50"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              {cleanupLoading ? 'Cleaning...' : 'Cleanup Test Episodes'}
+            </button>
+          </div>
+        </div>
+
+        {/* Confirmation dialog */}
+        {showCleanupConfirm && (
+          <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-xs text-yellow-800 dark:text-yellow-300 mb-2">
+                  This will permanently delete health-check episodes older than 1 hour.
+                  Real investigation episodes are not affected.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleCleanup(true)}
+                    className="px-2.5 py-1 text-xs rounded bg-yellow-200 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200 hover:bg-yellow-300 dark:hover:bg-yellow-700"
+                  >
+                    Dry Run
+                  </button>
+                  <button
+                    onClick={() => handleCleanup(false)}
+                    className="px-2.5 py-1 text-xs rounded bg-clay text-white hover:bg-clay-dark"
+                  >
+                    Delete
+                  </button>
+                  <button
+                    onClick={() => setShowCleanupConfirm(false)}
+                    className="px-2.5 py-1 text-xs rounded bg-stone-200 text-stone-700 dark:bg-stone-600 dark:text-stone-300 hover:bg-stone-300 dark:hover:bg-stone-500"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {loading ? (

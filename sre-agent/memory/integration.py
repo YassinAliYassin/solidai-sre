@@ -6,6 +6,7 @@ Stores episodes in PostgreSQL via config-service HTTP API.
 Provides memory-enhanced investigation planning and strategy generation.
 """
 
+import datetime
 import logging
 import os
 import uuid
@@ -440,6 +441,78 @@ def get_strategies(
     else:
         result = _get("/strategies/list", {"org_id": org})
         return (result or {}).get("strategies", [])
+
+
+# ---------------------------------------------------------------------------
+# Episode cleanup
+# ---------------------------------------------------------------------------
+
+
+def cleanup_old_episodes(
+    org_id: str = "",
+    older_than_hours: int = 24,
+    alert_type: str = "health_check",
+    dry_run: bool = False,
+) -> dict:
+    """
+    Delete old episodes matching criteria.
+
+    Used to clean up test/health-check episodes that accumulate over time.
+
+    Args:
+        org_id: Organization ID (default: from env)
+        older_than_hours: Only delete episodes older than this many hours
+        alert_type: Only delete episodes of this alert type (default: health_check)
+        dry_run: If True, count but don't delete
+
+    Returns:
+        {"deleted": int, "matched": int, "dry_run": bool}
+    """
+    org = org_id or _DEFAULT_ORG_ID
+    try:
+        # Fetch all episodes for this org
+        episodes = get_all_episodes(org_id=org, limit=500)
+        if not episodes:
+            return {"deleted": 0, "matched": 0, "dry_run": dry_run}
+
+        cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
+            hours=older_than_hours
+        )
+        matched = 0
+        deleted = 0
+
+        for ep in episodes:
+            # Filter by alert type
+            if alert_type and ep.get("alert_type") != alert_type:
+                continue
+
+            # Filter by age
+            created_str = ep.get("created_at") or ep.get("timestamp")
+            if created_str:
+                try:
+                    created = datetime.datetime.fromisoformat(
+                        created_str.replace("Z", "+00:00")
+                    )
+                    if created > cutoff:
+                        continue
+                except (ValueError, TypeError):
+                    continue
+
+            matched += 1
+            if not dry_run:
+                ep_id = ep.get("id")
+                if ep_id and _delete(f"/episodes/{ep_id}"):
+                    deleted += 1
+
+        logger.info(
+            f"[MEMORY-CLEANUP] org={org}, matched={matched}, deleted={deleted}, "
+            f"dry_run={dry_run}, older_than={older_than_hours}h, alert_type={alert_type}"
+        )
+        return {"deleted": deleted, "matched": matched, "dry_run": dry_run}
+
+    except Exception as e:
+        logger.error(f"[MEMORY-CLEANUP] Failed: {e}")
+        return {"deleted": 0, "matched": 0, "dry_run": dry_run, "error": str(e)[:200]}
 
 
 # ---------------------------------------------------------------------------

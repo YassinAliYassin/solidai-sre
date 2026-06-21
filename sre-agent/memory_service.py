@@ -20,6 +20,9 @@ from memory.integration import (
     get_all_episodes as _get_all_episodes,
 )
 from memory.integration import (
+    cleanup_old_episodes as _cleanup_old_episodes,
+)
+from memory.integration import (
     get_episode_by_id as _get_episode_by_id,
 )
 from memory.integration import (
@@ -162,4 +165,19 @@ def get_strategies(
         org_id=org_id,
         alert_type=alert_type,
         service_name=service_name,
+    )
+
+
+def cleanup_old_episodes(
+    org_id: str = "",
+    older_than_hours: int = 24,
+    alert_type: str = "health_check",
+    dry_run: bool = False,
+) -> dict:
+    """Clean up old episodes matching criteria. See integration.cleanup_old_episodes."""
+    return _cleanup_old_episodes(
+        org_id=org_id,
+        older_than_hours=older_than_hours,
+        alert_type=alert_type,
+        dry_run=dry_run,
     )

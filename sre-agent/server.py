@@ -1812,6 +1812,35 @@ async def memory_strategies(alert_type: str = "", service_name: str = ""):
 
 
 # -------------------------------------------------------------------------
+# Memory episode cleanup
+# -------------------------------------------------------------------------
+
+
+class EpisodeCleanupRequest(BaseModel):
+    older_than_hours: int = 24
+    alert_type: str = "health_check"
+    dry_run: bool = False
+
+
+@app.post("/memory/episodes/cleanup")
+async def memory_episodes_cleanup(request: EpisodeCleanupRequest):
+    """
+    Clean up old investigation episodes.
+
+    Deletes episodes matching the criteria (default: health_check episodes older than 24h).
+    Supports dry_run mode to preview what would be deleted.
+    """
+    from memory_service import cleanup_old_episodes
+
+    result = cleanup_old_episodes(
+        older_than_hours=request.older_than_hours,
+        alert_type=request.alert_type,
+        dry_run=request.dry_run,
+    )
+    return result
+
+
+# -------------------------------------------------------------------------
 # Knowledge Graph API endpoints
 # -------------------------------------------------------------------------
 

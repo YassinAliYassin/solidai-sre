@@ -16,6 +16,7 @@ import {
   LayoutDashboard,
   Key,
   Activity,
+  HeartPulse,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { LogoFull } from './Logo';
@@ -34,6 +35,7 @@ const teamNavigation = [
   { name: 'Investigation History', href: '/team/investigation-history', icon: Activity },
   { name: 'Proposed Changes', href: '/team/pending-changes', icon: GitPullRequest },
   { name: 'Agent Runs', href: '/team/agent-runs', icon: Bot },
+  { name: 'System Health', href: '/team/health', icon: HeartPulse },
   { name: 'Settings', href: '/settings', icon: ShieldCheck },
 ];
 

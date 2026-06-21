@@ -390,6 +390,77 @@ def get_uptime_stats(history: dict, service_name: str, window_hours: int = 24) -
         "window_hours": window_hours,
     }
 
+
+def get_sla_tier(uptime_pct: float | None) -> dict:
+    """Determine SLA tier from uptime percentage.
+
+    Returns tier name, color, and description.
+    Standard SLA tiers:
+      - 99.95%+ : Platinum (enterprise-grade)
+      - 99.9%+  : Gold (production-grade)
+      - 99.0%+  : Silver (standard)
+      - 95.0%+  : Bronze (basic)
+      - < 95%   : Below SLA
+    """
+    if uptime_pct is None:
+        return {"tier": "unknown", "color": "#9ca3af", "label": "No Data", "min_pct": None}
+    if uptime_pct >= 99.95:
+        return {"tier": "platinum", "color": "#a78bfa", "label": "Platinum", "min_pct": 99.95}
+    if uptime_pct >= 99.9:
+        return {"tier": "gold", "color": "#f59e0b", "label": "Gold", "min_pct": 99.9}
+    if uptime_pct >= 99.0:
+        return {"tier": "silver", "color": "#9ca3af", "label": "Silver", "min_pct": 99.0}
+    if uptime_pct >= 95.0:
+        return {"tier": "bronze", "color": "#d97706", "label": "Bronze", "min_pct": 95.0}
+    return {"tier": "below_sla", "color": "#ef4444", "label": "Below SLA", "min_pct": None}
+
+
+def get_sla_summary(history: dict, window_hours: int = 720) -> dict:
+    """Calculate SLA summary across all services for a given window.
+
+    Default window is 720 hours (30 days).
+    Returns per-service SLA info plus overall platform SLA.
+    """
+    all_names = set(history.keys())
+    services_sla = []
+    total_healthy = 0
+    total_checks = 0
+
+    for name in sorted(all_names):
+        uptime = get_uptime_stats(history, name, window_hours)
+        uptime_pct = uptime.get("uptime_pct")
+        sla = get_sla_tier(uptime_pct)
+
+        services_sla.append({
+            "name": name,
+            "uptime_pct": uptime_pct,
+            "total_checks": uptime.get("total_checks", 0),
+            "healthy_count": uptime.get("healthy_count", 0),
+            "sla_tier": sla["tier"],
+            "sla_label": sla["label"],
+            "sla_color": sla["color"],
+        })
+
+        if uptime.get("healthy_count"):
+            total_healthy += uptime["healthy_count"]
+        if uptime.get("total_checks"):
+            total_checks += uptime["total_checks"]
+
+    # Overall platform uptime
+    platform_pct = round(total_healthy / total_checks * 100, 2) if total_checks > 0 else None
+    platform_sla = get_sla_tier(platform_pct)
+
+    return {
+        "window_hours": window_hours,
+        "window_days": round(window_hours / 24, 1),
+        "platform_uptime_pct": platform_pct,
+        "platform_sla_tier": platform_sla["tier"],
+        "platform_sla_label": platform_sla["label"],
+        "platform_sla_color": platform_sla["color"],
+        "total_services": len(services_sla),
+        "services": services_sla,
+    }
+
 def get_incidents(history: dict, window_hours: int = 24) -> list:
     """
     Detect incidents (periods of down/degraded status) from service history.
@@ -1331,6 +1402,19 @@ async def get_incidents_endpoint(window_hours: int = 24):
     history = _load_history()
     incidents = get_incidents(history, window_hours)
     return _JSONResponse(incidents)
+
+
+@_api_app.get("/api/sla-summary")
+async def get_sla_summary_endpoint(window_hours: int = 720):
+    """Get SLA summary for all services.
+
+    Returns per-service and platform-wide uptime with SLA tier classification.
+    Default window is 720 hours (30 days). Use ?window_hours=24 for 24h SLA.
+    SLA tiers: Platinum (99.95%+), Gold (99.9%+), Silver (99.0%+), Bronze (95.0%+).
+    """
+    history = _load_history()
+    sla = get_sla_summary(history, window_hours)
+    return _JSONResponse(sla)
 
 
 async def _run_api_server():

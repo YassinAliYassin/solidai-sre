@@ -10,7 +10,7 @@ const HEALTH_MONITOR_URL =
  */
 export async function GET(req: NextRequest) {
   try {
-    const [summaryRes, historyRes, incidentsRes, modelHealthRes] = await Promise.allSettled([
+    const [summaryRes, historyRes, incidentsRes, modelHealthRes, slaRes] = await Promise.allSettled([
       fetch(`${HEALTH_MONITOR_URL}/api/health-summary`, {
         cache: "no-store",
       }),
@@ -21,6 +21,9 @@ export async function GET(req: NextRequest) {
         cache: "no-store",
       }),
       fetch(`${HEALTH_MONITOR_URL}/api/model-health`, {
+        cache: "no-store",
+      }),
+      fetch(`${HEALTH_MONITOR_URL}/api/sla-summary?window_hours=720`, {
         cache: "no-store",
       }),
     ]);
@@ -45,12 +48,18 @@ export async function GET(req: NextRequest) {
         ? await modelHealthRes.value.json()
         : null;
 
+    const sla =
+      slaRes.status === "fulfilled" && slaRes.value.ok
+        ? await slaRes.value.json()
+        : null;
+
     return NextResponse.json(
       {
         summary,
         history,
         incidents,
         model_health,
+        sla,
         generated_at: new Date().toISOString(),
       },
       {

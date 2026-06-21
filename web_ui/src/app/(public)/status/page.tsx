@@ -85,11 +85,33 @@ interface ModelHealthInfo {
   cache?: string | null;
 }
 
+interface SlaService {
+  name: string;
+  uptime_pct: number | null;
+  total_checks: number;
+  healthy_count: number;
+  sla_tier: string;
+  sla_label: string;
+  sla_color: string;
+}
+
+interface SlaSummaryData {
+  window_hours: number;
+  window_days: number;
+  platform_uptime_pct: number | null;
+  platform_sla_tier: string;
+  platform_sla_label: string;
+  platform_sla_color: string;
+  total_services: number;
+  services: SlaService[];
+}
+
 interface StatusData {
   summary: HealthSummary | null;
   history: Record<string, ServiceHistory> | null;
   incidents: Incident[] | null;
   model_health: ModelHealthInfo | null;
+  sla: SlaSummaryData | null;
   generated_at: string;
 }
 
@@ -488,6 +510,140 @@ function ModelHealthSection({ modelHealth }: { modelHealth: ModelHealthInfo | nu
   );
 }
 
+// ── SLA Summary ──────────────────────────────────────────────────────────────
+
+function SlaSummarySection({ sla }: { sla: SlaSummaryData | null }) {
+  if (!sla) return null;
+
+  const tierColors: Record<string, { bg: string; border: string; text: string; badge: string }> = {
+    platinum: {
+      bg: "bg-purple-50 dark:bg-purple-950/20",
+      border: "border-purple-200 dark:border-purple-800",
+      text: "text-purple-700 dark:text-purple-400",
+      badge: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400",
+    },
+    gold: {
+      bg: "bg-amber-50 dark:bg-amber-950/20",
+      border: "border-amber-200 dark:border-amber-800",
+      text: "text-amber-700 dark:text-amber-400",
+      badge: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
+    },
+    silver: {
+      bg: "bg-stone-50 dark:bg-stone-800/50",
+      border: "border-stone-200 dark:border-stone-700",
+      text: "text-stone-600 dark:text-stone-400",
+      badge: "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400",
+    },
+    bronze: {
+      bg: "bg-orange-50 dark:bg-orange-950/20",
+      border: "border-orange-200 dark:border-orange-800",
+      text: "text-orange-700 dark:text-orange-400",
+      badge: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400",
+    },
+    below_sla: {
+      bg: "bg-red-50 dark:bg-red-950/20",
+      border: "border-red-200 dark:border-red-800",
+      text: "text-red-700 dark:text-red-400",
+      badge: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
+    },
+    unknown: {
+      bg: "bg-stone-50 dark:bg-stone-800/50",
+      border: "border-stone-200 dark:border-stone-700",
+      text: "text-stone-500 dark:text-stone-400",
+      badge: "bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400",
+    },
+  };
+
+  const platformTier = tierColors[sla.platform_sla_tier] || tierColors.unknown;
+
+  return (
+    <section>
+      <h2 className="text-sm font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+        <Shield className="w-4 h-4" />
+        SLA Summary
+        <span className="ml-auto text-xs font-normal normal-case tracking-normal text-stone-400">
+          Last {sla.window_days}d
+        </span>
+      </h2>
+
+      {/* Platform Overall SLA */}
+      <div className={`rounded-xl border ${platformTier.border} ${platformTier.bg} p-5 mb-4`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-xs text-stone-500 dark:text-stone-400 mb-1">Platform Uptime</div>
+            <div className={`text-3xl font-bold ${platformTier.text}`}>
+              {sla.platform_uptime_pct !== null ? `${sla.platform_uptime_pct}%` : "—"}
+            </div>
+          </div>
+          <div className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${platformTier.badge}`}>
+            {sla.platform_sla_label}
+          </div>
+        </div>
+
+        {/* SLA Tier Scale */}
+        <div className="mt-4 pt-3 border-t border-stone-200/50 dark:border-stone-700/50">
+          <div className="flex items-center gap-1">
+            {(["platinum", "gold", "silver", "bronze"] as const).map((tier) => {
+              const t = tierColors[tier];
+              const isActive = sla.platform_sla_tier === tier;
+              const thresholds: Record<string, string> = {
+                platinum: "99.95%",
+                gold: "99.9%",
+                silver: "99.0%",
+                bronze: "95.0%",
+              };
+              return (
+                <div
+                  key={tier}
+                  className={`flex-1 text-center py-1.5 rounded text-[10px] font-medium transition-all ${
+                    isActive
+                      ? `${t.badge} ring-2 ring-offset-1 ring-current`
+                      : "text-stone-400 dark:text-stone-600"
+                  }`}
+                >
+                  <div className="capitalize">{tier}</div>
+                  <div className="text-[9px] opacity-70">{thresholds[tier]}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Per-Service SLA */}
+      {sla.services.length > 0 && (
+        <div className="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 divide-y divide-stone-100 dark:divide-stone-700">
+          {sla.services.map((svc) => {
+            const tier = tierColors[svc.sla_tier] || tierColors.unknown;
+            return (
+              <div key={svc.name} className="px-5 py-3 flex items-center gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-sm text-stone-900 dark:text-white truncate">
+                    {svc.name}
+                  </div>
+                  <div className="text-[10px] text-stone-400 mt-0.5">
+                    {svc.healthy_count}/{svc.total_checks} checks
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className={`text-sm font-bold ${uptimeColor(svc.uptime_pct)}`}>
+                    {formatUptime(svc.uptime_pct)}
+                  </div>
+                </div>
+                <span
+                  className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded shrink-0 ${tier.badge}`}
+                >
+                  {svc.sla_label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 // ── Overall Status Banner ───────────────────────────────────────────────────
 
 function OverallBanner({ summary }: { summary: HealthSummary | null }) {
@@ -683,6 +839,9 @@ export default function StatusPage() {
               </div>
             </div>
 
+            {/* SLA Summary */}
+            <SlaSummarySection sla={data?.sla || null} />
+
             {/* Incident Timeline */}
             <IncidentTimeline incidents={data?.incidents || null} />
 
@@ -718,6 +877,64 @@ export default function StatusPage() {
                 </div>
               </section>
             )}
+
+            {/* Badge Embed */}
+            <section>
+              <h2 className="text-sm font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <ArrowUpRight className="w-4 h-4" />
+                Embed Badge
+              </h2>
+              <div className="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 p-5">
+                <div className="flex items-center gap-4 mb-4">
+                  <img
+                    src="/api/status/badge.svg"
+                    alt="System status badge"
+                    className="h-6"
+                  />
+                  <span className="text-xs text-stone-500">
+                    Real-time status badge for your README or website
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-stone-600 dark:text-stone-400">
+                    Markdown
+                  </label>
+                  <div className="relative">
+                    <pre className="bg-stone-100 dark:bg-stone-900 rounded-lg p-3 text-xs font-mono text-stone-700 dark:text-stone-300 overflow-x-auto pr-12">
+                      {`![Status](https://${typeof window !== "undefined" ? window.location.host : "localhost:3000"}/api/status/badge.svg)`}
+                    </pre>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard?.writeText(
+                          `![Status](https://${window.location.host}/api/status/badge.svg)`
+                        );
+                      }}
+                      className="absolute top-2 right-2 px-2 py-1 rounded text-[10px] font-medium bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-400 hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <label className="text-xs font-medium text-stone-600 dark:text-stone-400">
+                    HTML
+                  </label>
+                  <div className="relative">
+                    <pre className="bg-stone-100 dark:bg-stone-900 rounded-lg p-3 text-xs font-mono text-stone-700 dark:text-stone-300 overflow-x-auto pr-12">
+                      {`<img src="https://${typeof window !== "undefined" ? window.location.host : "localhost:3000"}/api/status/badge.svg" alt="Status" />`}
+                    </pre>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard?.writeText(
+                          `<img src="https://${window.location.host}/api/status/badge.svg" alt="Status" />`
+                        );
+                      }}
+                      className="absolute top-2 right-2 px-2 py-1 rounded text-[10px] font-medium bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-400 hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
 
             {/* Footer */}
             <footer className="text-center pt-8 pb-4 border-t border-stone-200 dark:border-stone-700">

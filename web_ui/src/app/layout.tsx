@@ -1,21 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
 import { SignInGate } from "@/components/SignInGate";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { VisitorSessionProvider } from "@/components/VisitorSessionProvider";
 import { VisitorWarningBanner } from "@/components/VisitorWarningBanner";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "SolidAI SRE",
@@ -52,7 +41,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased h-full bg-stone-50 dark:bg-stone-900`}
+        className={`antialiased h-full bg-stone-50 dark:bg-stone-900`}
       >
         <ThemeProvider>
           <SignInGate>

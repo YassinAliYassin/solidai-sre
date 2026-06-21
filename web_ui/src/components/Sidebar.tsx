@@ -17,6 +17,7 @@ import {
   Key,
   Activity,
   HeartPulse,
+  Zap,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { LogoFull } from './Logo';
@@ -27,6 +28,7 @@ import { AccountMenu } from './AccountMenu';
 // Navigation for team users
 const teamNavigation = [
   { name: 'Dashboard', href: '/team', icon: LayoutDashboard },
+  { name: 'Live Investigation', href: '/team/investigate', icon: Zap },
   { name: 'Agent Topology', href: '/team/agents', icon: Bot },
   { name: 'Tools & MCPs', href: '/team/tools', icon: Server },
   { name: 'Knowledge Base', href: '/team/knowledge', icon: BookOpen },

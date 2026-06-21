@@ -390,6 +390,91 @@ def get_uptime_stats(history: dict, service_name: str, window_hours: int = 24) -
         "window_hours": window_hours,
     }
 
+def get_incidents(history: dict, window_hours: int = 24) -> list:
+    """
+    Detect incidents (periods of down/degraded status) from service history.
+    Returns a list of incident objects sorted by start time descending.
+    Each incident: {
+        service_name: str,
+        status: str,  # worst status during incident ('down' or 'degraded')
+        start_time: str,  # ISO timestamp
+        end_time: str | None,  # ISO timestamp or None if ongoing
+        duration_seconds: float | None,  # None if ongoing
+    }
+    """
+    incidents = []
+    cutoff = (
+        datetime.datetime.now(datetime.timezone.utc)
+        - datetime.timedelta(hours=window_hours)
+    ).isoformat()
+
+    for name, entries in history.items():
+        if not entries:
+            continue
+        # Ensure entries are sorted by timestamp ascending
+        sorted_entries = sorted(entries, key=lambda e: e["timestamp"])
+        # Filter entries within window
+        windowed = [e for e in sorted_entries if e["timestamp"] >= cutoff]
+        if not windowed:
+            continue
+
+        incident_start = None
+        incident_statuses = []  # collect statuses during incident to determine worst
+
+        for entry in windowed:
+            status = entry["status"]
+            is_non_healthy = status in ("down", "degraded")
+            ts = entry["timestamp"]
+
+            if is_non_healthy and incident_start is None:
+                # Start new incident
+                incident_start = ts
+                incident_statuses = [status]
+            elif not is_non_healthy and incident_start is not None:
+                # End incident
+                incident_end = ts
+                # Determine worst status: down > degraded
+                worst_status = "down" if "down" in incident_statuses else "degraded"
+                duration = (
+                    datetime.datetime.fromisoformat(incident_end)
+                    - datetime.datetime.fromisoformat(incident_start)
+                ).total_seconds()
+                incidents.append(
+                    {
+                        "service_name": name,
+                        "status": worst_status,
+                        "start_time": incident_start,
+                        "end_time": incident_end,
+                        "duration_seconds": duration,
+                    }
+                )
+                incident_start = None
+                incident_statuses = []
+            elif is_non_healthy and incident_start is not None:
+                # Continue incident
+                incident_statuses.append(status)
+
+        # If incident still open at end of windowed entries
+        if incident_start is not None:
+            # Incident ongoing at the end of the window
+            incident_end = None  # ongoing
+            worst_status = "down" if "down" in incident_statuses else "degraded"
+            incidents.append(
+                {
+                    "service_name": name,
+                    "status": worst_status,
+                    "start_time": incident_start,
+                    "end_time": None,
+                    "duration_seconds": None,
+                }
+            )
+
+    # Sort by start_time descending (most recent first)
+    incidents.sort(
+        key=lambda i: i["start_time"],
+        reverse=True,
+    )
+    return incidents
 
 def _percentile(sorted_vals: list[float], pct: float) -> float:
     """Compute the given percentile from a sorted list using linear interpolation."""
@@ -1234,6 +1319,18 @@ async def get_model_health(force: bool = False):
                 "warning": "Force refresh timed out after 90s, showing last cached result",
             })
     return _JSONResponse(_model_health_cache)
+
+@_api_app.get("/api/incidents")
+async def get_incidents_endpoint(window_hours: int = 24):
+    """Get incident timeline for all services.
+
+    Returns a list of incident objects (downtime/degradation periods) for all
+    monitored services within the specified time window (default 24 hours).
+    Each incident includes service name, status, start/end times, and duration.
+    """
+    history = _load_history()
+    incidents = get_incidents(history, window_hours)
+    return _JSONResponse(incidents)
 
 
 async def _run_api_server():

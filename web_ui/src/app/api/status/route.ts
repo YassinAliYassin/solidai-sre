@@ -10,11 +10,14 @@ const HEALTH_MONITOR_URL =
  */
 export async function GET(req: NextRequest) {
   try {
-    const [summaryRes, historyRes] = await Promise.allSettled([
+    const [summaryRes, historyRes, incidentsRes] = await Promise.allSettled([
       fetch(`${HEALTH_MONITOR_URL}/api/health-summary`, {
         cache: "no-store",
       }),
       fetch(`${HEALTH_MONITOR_URL}/api/health-history?window_hours=24`, {
+        cache: "no-store",
+      }),
+      fetch(`${HEALTH_MONITOR_URL}/api/incidents?window_hours=24`, {
         cache: "no-store",
       }),
     ]);
@@ -29,10 +32,16 @@ export async function GET(req: NextRequest) {
         ? await historyRes.value.json()
         : null;
 
+    const incidents =
+      incidentsRes.status === "fulfilled" && incidentsRes.value.ok
+        ? await incidentsRes.value.json()
+        : null;
+
     return NextResponse.json(
       {
         summary,
         history,
+        incidents,
         generated_at: new Date().toISOString(),
       },
       {
@@ -40,7 +49,7 @@ export async function GET(req: NextRequest) {
           "Cache-Control": "no-store, no-cache, must-revalidate",
           "Access-Control-Allow-Origin": "*",
         },
-      },
+      }
     );
   } catch (err: any) {
     return NextResponse.json(
@@ -48,7 +57,7 @@ export async function GET(req: NextRequest) {
         error: "Failed to fetch status data",
         details: err?.message || String(err),
       },
-      { status: 502 },
+      { status: 502 }
     );
   }
 }

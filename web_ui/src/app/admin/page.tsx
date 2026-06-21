@@ -31,6 +31,7 @@ import {
   Play,
   History,
   Server,
+  Brain,
 } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 
@@ -165,6 +166,8 @@ export default function AdminHomePage() {
   const [errorRates, setErrorRates] = useState<Record<string, ErrorRateData>>({});
   const [errorRatesLoading, setErrorRatesLoading] = useState(false);
   const [errorRatesLastUpdated, setErrorRatesLastUpdated] = useState<Date | null>(null);
+  const [memoryHealth, setMemoryHealth] = useState<any>(null);
+  const [memoryHealthLoading, setMemoryHealthLoading] = useState(false);
   const healthIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const historyIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -276,6 +279,22 @@ export default function AdminHomePage() {
     }
   }, []);
 
+  // Fetch memory health from sre-agent
+  const fetchMemoryHealth = useCallback(async () => {
+    setMemoryHealthLoading(true);
+    try {
+      const res = await fetch('/api/admin/memory-health', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        setMemoryHealth(data);
+      }
+    } catch (err) {
+      console.error('Failed to load memory health:', err);
+    } finally {
+      setMemoryHealthLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!identity?.org_id) return;
 
@@ -305,7 +324,9 @@ export default function AdminHomePage() {
     fetchLitellmHealth();
     // Initial error rates fetch
     fetchErrorRates();
-  }, [identity?.org_id, fetchHealth, fetchHealthHistory, fetchLitellmHealth, fetchErrorRates]);
+    // Initial memory health fetch
+    fetchMemoryHealth();
+  }, [identity?.org_id, fetchHealth, fetchHealthHistory, fetchLitellmHealth, fetchErrorRates, fetchMemoryHealth]);
 
   // Auto-refresh health data
   useEffect(() => {
@@ -322,6 +343,7 @@ export default function AdminHomePage() {
       if (orgId) fetchHealth(orgId);
       fetchLitellmHealth();
       fetchErrorRates();
+      fetchMemoryHealth();
     }, HEALTH_REFRESH_INTERVAL_MS);
 
     return () => {
@@ -942,6 +964,86 @@ export default function AdminHomePage() {
                           ))}
                         </div>
                       )}
+                    </div>
+                  )}
+                </div>
+                {/* Memory System Health */}
+                <div className="border-t border-stone-200 dark:border-stone-700 pt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-xs font-medium text-stone-500 uppercase">Memory System</div>
+                    <button
+                      onClick={fetchMemoryHealth}
+                      disabled={memoryHealthLoading}
+                      className="p-1 rounded text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors disabled:opacity-50"
+                      title="Refresh memory health"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${memoryHealthLoading ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
+                  {!memoryHealth && !memoryHealthLoading && (
+                    <div className="text-xs text-stone-400 italic">No memory health data — click refresh</div>
+                  )}
+                  {memoryHealthLoading && (
+                    <div className="text-xs text-stone-400 italic">Checking memory system...</div>
+                  )}
+                  {memoryHealth && (
+                    <div className="space-y-2">
+                      {/* Overall status badge */}
+                      <div className="flex items-center gap-2">
+                        {memoryHealth.status === 'healthy' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                            <CheckCircle className="w-2.5 h-2.5" />
+                            Healthy
+                          </span>
+                        ) : memoryHealth.status === 'partial_outage' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                            <AlertCircle className="w-2.5 h-2.5" />
+                            Partial Outage
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                            <XCircle className="w-2.5 h-2.5" />
+                            Degraded
+                          </span>
+                        )}
+                        {memoryHealth.checks?.config_service?.total_episodes !== undefined && (
+                          <span className="text-[10px] text-stone-400">
+                            {memoryHealth.checks.config_service.total_episodes} episodes stored
+                          </span>
+                        )}
+                      </div>
+                      {/* Individual checks */}
+                      {memoryHealth.checks && Object.entries(memoryHealth.checks).map(([checkName, checkData]: [string, any]) => (
+                        <div key={checkName} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {checkData.status === 'healthy' ? (
+                              <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" />
+                            ) : checkData.status === 'degraded' ? (
+                              <AlertCircle className="w-3 h-3 text-amber-500 flex-shrink-0" />
+                            ) : (
+                              <XCircle className="w-3 h-3 text-red-500 flex-shrink-0" />
+                            )}
+                            <span className="text-xs text-stone-700 dark:text-stone-300">
+                              {checkName === 'config_service' ? 'Config Service' :
+                               checkName === 'episode_write' ? 'Episode Write' :
+                               checkName === 'episode_read' ? 'Episode Read' : checkName}
+                            </span>
+                          </div>
+                          <span className={`text-[10px] ${
+                            checkData.status === 'healthy' ? 'text-green-600 dark:text-green-400' :
+                            checkData.status === 'degraded' ? 'text-amber-600 dark:text-amber-400' :
+                            'text-red-600 dark:text-red-400'
+                          }`}>
+                            {checkData.status}
+                          </span>
+                        </div>
+                      ))}
+                      {/* Error details */}
+                      {memoryHealth.checks && Object.entries(memoryHealth.checks).filter(([_, d]: [string, any]) => d.error).map(([checkName, checkData]: [string, any]) => (
+                        <div key={`${checkName}-err`} className="text-[10px] text-red-400 bg-red-50 dark:bg-red-900/20 rounded px-2 py-1 font-mono break-all">
+                          {checkData.error}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

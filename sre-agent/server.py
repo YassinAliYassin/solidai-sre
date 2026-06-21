@@ -192,6 +192,96 @@ async def system_status():
     }
 
 
+@app.get("/memory/health")
+async def memory_health():
+    """Check memory system health — config-service connectivity + episode storage pipeline."""
+    from memory_service import get_memory_stats
+
+    result = {
+        "status": "healthy",
+        "checks": {},
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    }
+
+    # Check 1: config-service connectivity via memory stats
+    try:
+        stats = get_memory_stats(org_id="default")
+        result["checks"]["config_service"] = {
+            "status": "healthy",
+            "total_episodes": stats.get("total_episodes", 0),
+        }
+    except Exception as e:
+        result["checks"]["config_service"] = {
+            "status": "unreachable",
+            "error": str(e)[:200],
+        }
+
+    # Check 2: Episode storage pipeline (write + read back)
+    import uuid
+
+    test_id = f"health-check-{uuid.uuid4().hex[:8]}"
+    test_episode = {
+        "id": test_id,
+        "agent_run_id": None,
+        "org_id": "default",
+        "team_node_id": None,
+        "alert_type": "health_check",
+        "alert_description": "Automated health check test episode",
+        "severity": "info",
+        "services": ["health-monitor"],
+        "agents_used": ["sre-agent"],
+        "skills_used": ["health_check"],
+        "key_findings": [],
+        "resolved": True,
+        "root_cause": "Health check test",
+        "summary": "This is a test episode created by the memory health check endpoint.",
+        "effectiveness_score": 1.0,
+        "confidence": 1.0,
+        "duration_seconds": 0.0,
+    }
+    try:
+        from memory.integration import _post, _get
+
+        post_result = _post("/episodes", test_episode)
+        if post_result and post_result.get("id"):
+            result["checks"]["episode_write"] = {"status": "healthy"}
+        else:
+            result["checks"]["episode_write"] = {
+                "status": "degraded",
+                "error": "POST /episodes returned no ID",
+            }
+
+        # Read back
+        read_result = _get(f"/episodes/{test_id}", {"org_id": "default"})
+        if read_result and read_result.get("id") == test_id:
+            result["checks"]["episode_read"] = {"status": "healthy"}
+        else:
+            result["checks"]["episode_read"] = {
+                "status": "degraded",
+                "error": "GET /episodes/{id} could not read back test episode",
+            }
+    except Exception as e:
+        result["checks"]["episode_write"] = {
+            "status": "unreachable",
+            "error": str(e)[:200],
+        }
+        result["checks"]["episode_read"] = {
+            "status": "unreachable",
+            "error": str(e)[:200],
+        }
+
+    # Overall status
+    statuses = [c.get("status", "unknown") for c in result["checks"].values()]
+    if all(s == "healthy" for s in statuses):
+        result["status"] = "healthy"
+    elif any(s == "unreachable" for s in statuses):
+        result["status"] = "partial_outage"
+    else:
+        result["status"] = "degraded"
+
+    return result
+
+
 def _get_proxy_base_url() -> str:
     """Get the base URL for file proxy that agent can access."""
     if os.getenv("ROUTER_LOCAL_PORT"):

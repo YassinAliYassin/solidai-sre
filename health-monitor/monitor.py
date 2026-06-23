@@ -134,6 +134,17 @@ _last_alert_time: dict[str, float] = {}
 # service_name -> timestamp of last recovery notification
 _last_recovery_time: dict[str, float] = {}
 
+# ---------------------------------------------------------------------------
+# Webhook Subscriptions & SSE
+# ---------------------------------------------------------------------------
+
+# Webhook subscriptions: list of dicts {"id": str, "url": str, "events": list[str], "created_at": str}
+_webhook_subs: list[dict] = []
+# SSE subscribers: list of asyncio.Queue objects for broadcasting events
+_sse_queues: list[asyncio.Queue] = []
+# Lock for webhook sub mutations
+_webhook_lock = asyncio.Lock()
+
 
 def _check_tcp(host: str, port: int, timeout: float) -> dict:
     """Check TCP connectivity."""
@@ -911,6 +922,80 @@ async def process_results(results: list[dict], is_public: bool = False):
         # Update last known status
         _last_status[name] = status
 
+    # After processing all results, broadcast events to webhooks & SSE
+    await _broadcast_events(results, is_public)
+
+
+async def _broadcast_events(results: list[dict], is_public: bool = False):
+    """Broadcast health check events to all webhook subscribers and SSE queues.
+
+    Events are sent for every check cycle, not just status changes, so subscribers
+    get a complete real-time picture.
+    """
+    if not results:
+        return
+
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    event_type = "health.check"
+    if is_public:
+        event_type = "health.public_check"
+
+    payload = {
+        "event": event_type,
+        "timestamp": now,
+        "results": results,
+    }
+
+    # --- SSE broadcast ---
+    if _sse_queues:
+        # Build SSE data payload
+        sse_data = f"event: {event_type}\ndata: {json.dumps(payload)}\n\n"
+        dead_queues: list[int] = []
+        for i, q in enumerate(_sse_queues):
+            try:
+                q.put_nowait(sse_data)
+            except asyncio.QueueFull:
+                dead_queues.append(i)
+        # Clean up full/dead queues (iterate in reverse to preserve indices)
+        for i in reversed(dead_queues):
+            _sse_queues.pop(i)
+
+    # --- Webhook dispatch ---
+    if _webhook_subs:
+        await _dispatch_webhooks(event_type, payload)
+
+
+async def _dispatch_webhooks(event_type: str, payload: dict):
+    """Send webhook POST to all registered subscribers matching the event type."""
+    subs = list(_webhook_subs)  # snapshot to avoid mutation during iteration
+
+    async def _post(sub: dict):
+        events_filter = sub.get("events", [])
+        # Empty events list means subscribe to all events
+        if events_filter and event_type not in events_filter:
+            return
+        url = sub["url"]
+        try:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
+                resp = await client.post(
+                    url,
+                    json=payload,
+                    headers={
+                        "Content-Type": "application/json",
+                        "User-Agent": "SolidAI-SRE-HealthMonitor/0.3",
+                        "X-SolidAI-Event": event_type,
+                        "X-SolidAI-Delivery": sub.get("id", ""),
+                    },
+                )
+                if resp.status_code >= 400:
+                    logger.warning(
+                        f"Webhook {sub.get('id')} -> {url} returned {resp.status_code}"
+                    )
+        except Exception as e:
+            logger.warning(f"Webhook {sub.get('id')} -> {url} failed: {e}")
+
+    await asyncio.gather(*[_post(sub) for sub in subs], return_exceptions=True)
+
 
 async def _check_error_rates_and_latency(current_results: list[dict]):
     """After recording history, check error rates and latency degradation.
@@ -1061,8 +1146,8 @@ async def run_health_check():
 # Health history HTTP API (lightweight, runs in same process)
 # ---------------------------------------------------------------------------
 
-from fastapi import FastAPI as _FastAPI
-from fastapi.responses import JSONResponse as _JSONResponse
+from fastapi import FastAPI as _FastAPI, Body as _Body
+from fastapi.responses import JSONResponse as _JSONResponse, StreamingResponse as _StreamingResponse
 
 _api_app = _FastAPI(title="SolidAI SRE Health Monitor API", version="0.3.0")
 
@@ -1415,6 +1500,161 @@ async def get_sla_summary_endpoint(window_hours: int = 720):
     history = _load_history()
     sla = get_sla_summary(history, window_hours)
     return _JSONResponse(sla)
+
+
+# ---------------------------------------------------------------------------
+# Webhook Subscriptions API
+# ---------------------------------------------------------------------------
+
+@_api_app.post("/api/webhooks")
+async def register_webhook(request: dict = _Body(...)):
+    """Register a new webhook subscription.
+
+    POST body (JSON):
+    {
+      "url": "https://example.com/webhook",   // required — callback URL
+      "events": ["health.check"]               // optional — event types to subscribe to (empty = all)
+    }
+
+    Returns the created subscription with its assigned ID.
+    """
+    import uuid as _uuid
+
+    url = request.get("url", "").strip()
+    if not url:
+        return _JSONResponse({"error": "url is required"}, status_code=400)
+    if not url.startswith(("http://", "https://")):
+        return _JSONResponse({"error": "url must start with http:// or https://"}, status_code=400)
+
+    events = request.get("events", [])
+    if not isinstance(events, list):
+        return _JSONResponse({"error": "events must be a list"}, status_code=400)
+
+    sub_id = str(_uuid.uuid4())[:12]
+    sub = {
+        "id": sub_id,
+        "url": url,
+        "events": events,
+        "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    }
+
+    async with _webhook_lock:
+        _webhook_subs.append(sub)
+
+    logger.info(f"Webhook registered: {sub_id} -> {url} (events: {events or 'all'})")
+    return _JSONResponse(sub, status_code=201)
+
+
+@_api_app.get("/api/webhooks")
+async def list_webhooks():
+    """List all registered webhook subscriptions."""
+    return _JSONResponse({"webhooks": list(_webhook_subs)})
+
+
+@_api_app.delete("/api/webhooks/{sub_id}")
+async def delete_webhook(sub_id: str):
+    """Delete a webhook subscription by ID."""
+    async with _webhook_lock:
+        for i, sub in enumerate(_webhook_subs):
+            if sub["id"] == sub_id:
+                _webhook_subs.pop(i)
+                logger.info(f"Webhook deleted: {sub_id}")
+                return _JSONResponse({"deleted": True, "id": sub_id})
+    return _JSONResponse({"error": "webhook not found"}, status_code=404)
+
+
+@_api_app.post("/api/webhooks/{sub_id}/test")
+async def test_webhook(sub_id: str):
+    """Send a test event to a webhook subscription."""
+    sub = None
+    async with _webhook_lock:
+        for s in _webhook_subs:
+            if s["id"] == sub_id:
+                sub = s
+                break
+
+    if not sub:
+        return _JSONResponse({"error": "webhook not found"}, status_code=404)
+
+    test_payload = {
+        "event": "health.test",
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "message": "This is a test event from SolidAI SRE Health Monitor",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
+            resp = await client.post(
+                sub["url"],
+                json=test_payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "User-Agent": "SolidAI-SRE-HealthMonitor/0.3",
+                    "X-SolidAI-Event": "health.test",
+                    "X-SolidAI-Delivery": sub_id,
+                },
+            )
+        return _JSONResponse({
+            "sent": True,
+            "status_code": resp.status_code,
+            "url": sub["url"],
+        })
+    except Exception as e:
+        return _JSONResponse({
+            "sent": False,
+            "error": str(e)[:200],
+            "url": sub["url"],
+        }, status_code=502)
+
+
+# ---------------------------------------------------------------------------
+# SSE Endpoint — real-time health events
+# ---------------------------------------------------------------------------
+
+@_api_app.get("/api/events")
+async def stream_events():
+    """Server-Sent Events endpoint for real-time health check updates.
+
+    Clients receive a JSON payload on every health check cycle.
+    Events: health.check (internal services), health.public_check (public endpoints)
+
+    Usage:
+      curl -N http://localhost:8090/api/events
+      Or use EventSource in the browser.
+    """
+    queue: asyncio.Queue = asyncio.Queue(maxsize=10)
+    _sse_queues.append(queue)
+
+    async def event_generator():
+        try:
+            # Send initial connected event
+            yield f"event: connected\ndata: {json.dumps({'status': 'connected', 'message': 'Subscribed to health events'})}\n\n"
+
+            while True:
+                try:
+                    data = await asyncio.wait_for(queue.get(), timeout=30.0)
+                    yield data
+                except asyncio.TimeoutError:
+                    # Send keepalive comment to prevent proxy timeouts
+                    yield ": keepalive\n\n"
+        except asyncio.CancelledError:
+            pass
+        finally:
+            # Clean up queue on disconnect
+            try:
+                _sse_queues.remove(queue)
+            except ValueError:
+                pass
+
+    return _StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 async def _run_api_server():

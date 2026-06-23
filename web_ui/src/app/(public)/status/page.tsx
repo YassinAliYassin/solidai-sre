@@ -14,6 +14,7 @@ import {
   Shield,
   Zap,
   ArrowUpRight,
+  Bell,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -714,7 +715,16 @@ export default function StatusPage() {
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [sseConnected, setSseConnected] = useState(false);
+  const [webhooks, setWebhooks] = useState<Array<{ id: string; url: string; events: string[]; created_at: string }>>([]);
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [webhookEvents, setWebhookEvents] = useState("");
+  const [webhookLoading, setWebhookLoading] = useState(false);
+  const [webhookError, setWebhookError] = useState<string | null>(null);
+  const [webhookSuccess, setWebhookSuccess] = useState<string | null>(null);
+  const [showWebhookForm, setShowWebhookForm] = useState(false);
 
+  // Fetch status from the API proxy
   const fetchStatus = useCallback(async (isManual = false) => {
     if (isManual) setRefreshing(true);
     try {
@@ -732,11 +742,140 @@ export default function StatusPage() {
     }
   }, []);
 
+  // Fetch webhook subscriptions
+  const fetchWebhooks = useCallback(async () => {
+    try {
+      const res = await fetch("/api/webhooks");
+      if (!res.ok) return;
+      const json = await res.json();
+      setWebhooks(json.webhooks || []);
+    } catch {
+      // Silently fail — webhooks are optional
+    }
+  }, []);
+
+  // Initial fetch
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(() => fetchStatus(), 30_000);
-    return () => clearInterval(interval);
+    fetchWebhooks();
+  }, [fetchStatus, fetchWebhooks]);
+
+  // SSE connection for real-time updates
+  useEffect(() => {
+    let eventSource: EventSource | null = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    let shouldReconnect = true;
+
+    const connect = () => {
+      try {
+        eventSource = new EventSource("/api/events");
+
+        eventSource.onopen = () => {
+          setSseConnected(true);
+        };
+
+        eventSource.addEventListener("connected", () => {
+          setSseConnected(true);
+        });
+
+        eventSource.addEventListener("health.check", (evt) => {
+          try {
+            const payload = JSON.parse(evt.data);
+            // Fetch full status summary on each health check event
+            fetchStatus();
+            setLastRefresh(new Date().toISOString());
+            setSseConnected(true);
+          } catch {
+            // ignore parse errors
+          }
+        });
+
+        eventSource.addEventListener("health.public_check", () => {
+          fetchStatus();
+          setLastRefresh(new Date().toISOString());
+        });
+
+        eventSource.onerror = () => {
+          setSseConnected(false);
+          if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+          }
+          // Reconnect after 5 seconds
+          if (shouldReconnect) {
+            reconnectTimeout = setTimeout(connect, 5000);
+          }
+        };
+      } catch {
+        // EventSource not supported or connection failed
+        setSseConnected(false);
+      }
+    };
+
+    connect();
+
+    return () => {
+      shouldReconnect = false;
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+      }
+    };
   }, [fetchStatus]);
+
+  // Webhook CRUD handlers
+  const handleCreateWebhook = async () => {
+    setWebhookLoading(true);
+    setWebhookError(null);
+    setWebhookSuccess(null);
+    try {
+      const events = webhookEvents
+        .split(",")
+        .map((e) => e.trim())
+        .filter(Boolean);
+      const res = await fetch("/api/webhooks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: webhookUrl, events }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to register webhook");
+      setWebhookSuccess(`Webhook registered: ${json.id}`);
+      setWebhookUrl("");
+      setWebhookEvents("");
+      await fetchWebhooks();
+    } catch (e: any) {
+      setWebhookError(e.message || "Failed to register webhook");
+    } finally {
+      setWebhookLoading(false);
+    }
+  };
+
+  const handleDeleteWebhook = async (id: string) => {
+    try {
+      await fetch(`/api/webhooks/${id}`, { method: "DELETE" });
+      await fetchWebhooks();
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleTestWebhook = async (id: string) => {
+    setWebhookLoading(true);
+    setWebhookError(null);
+    setWebhookSuccess(null);
+    try {
+      const res = await fetch(`/api/webhooks/${id}/test`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Test failed");
+      setWebhookSuccess(`Test sent! Status: ${json.status_code}`);
+    } catch (e: any) {
+      setWebhookError(e.message || "Test failed");
+    } finally {
+      setWebhookLoading(false);
+    }
+  };
 
   const services = data?.summary?.services || [];
   const history = data?.history || {};
@@ -766,6 +905,11 @@ export default function StatusPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {/* SSE connection indicator */}
+            <span className={`inline-flex items-center gap-1.5 text-xs ${sseConnected ? "text-emerald-600 dark:text-emerald-400" : "text-stone-400"}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${sseConnected ? "bg-emerald-500 animate-pulse" : "bg-stone-400"}`} />
+              {sseConnected ? "Live" : "Reconnecting…"}
+            </span>
             {lastRefresh && (
               <span className="text-xs text-stone-400 hidden sm:inline">
                 Updated {formatRelativeTime(lastRefresh)}
@@ -936,6 +1080,122 @@ export default function StatusPage() {
               </div>
             </section>
 
+            {/* Webhook Subscriptions */}
+            <section>
+              <h2 className="text-sm font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Bell className="w-4 h-4" />
+                Webhook Subscriptions
+                <span className="ml-auto text-xs font-normal normal-case tracking-normal text-stone-400">
+                  Real-time HTTP callbacks
+                </span>
+              </h2>
+              <div className="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 p-5">
+                <p className="text-xs text-stone-500 dark:text-stone-400 mb-4">
+                  Register a webhook URL to receive real-time health check events via HTTP POST.
+                  Events include <code className="bg-stone-100 dark:bg-stone-700 px-1 rounded">health.check</code> (internal services) and{" "}
+                  <code className="bg-stone-100 dark:bg-stone-700 px-1 rounded">health.public_check</code> (public endpoints).
+                </p>
+
+                {/* Existing webhooks list */}
+                {webhooks.length > 0 && (
+                  <div className="space-y-2 mb-4">
+                    {webhooks.map((wh) => (
+                      <div
+                        key={wh.id}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-stone-50 dark:bg-stone-900 border border-stone-200/50 dark:border-stone-700/50"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-mono text-stone-700 dark:text-stone-300 truncate">
+                            {wh.url}
+                          </div>
+                          <div className="text-[10px] text-stone-400 mt-0.5">
+                            ID: {wh.id}
+                            {wh.events.length > 0 && (
+                              <span> · Events: {wh.events.join(", ")}</span>
+                            )}
+                            {wh.events.length === 0 && (
+                              <span> · All events</span>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleTestWebhook(wh.id)}
+                          disabled={webhookLoading}
+                          className="shrink-0 px-2.5 py-1 rounded text-[10px] font-medium bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-400 hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors disabled:opacity-50"
+                        >
+                          Test
+                        </button>
+                        <button
+                          onClick={() => handleDeleteWebhook(wh.id)}
+                          className="shrink-0 px-2.5 py-1 rounded text-[10px] font-medium bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/60 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Status messages */}
+                {webhookError && (
+                  <div className="mb-3 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs text-red-600 dark:text-red-400">
+                    {webhookError}
+                  </div>
+                )}
+                {webhookSuccess && (
+                  <div className="mb-3 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-600 dark:text-emerald-400">
+                    {webhookSuccess}
+                  </div>
+                )}
+
+                {/* Toggle form */}
+                <button
+                  onClick={() => setShowWebhookForm(!showWebhookForm)}
+                  className="text-xs font-medium text-forest hover:underline"
+                >
+                  {showWebhookForm ? "Cancel" : "+ Add webhook subscription"}
+                </button>
+
+                {/* Add webhook form */}
+                {showWebhookForm && (
+                  <div className="mt-3 space-y-3 pt-3 border-t border-stone-200 dark:border-stone-700">
+                    <div>
+                      <label className="text-xs font-medium text-stone-600 dark:text-stone-400 block mb-1">
+                        Webhook URL <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="url"
+                        value={webhookUrl}
+                        onChange={(e) => setWebhookUrl(e.target.value)}
+                        placeholder="https://example.com/webhook"
+                        className="w-full px-3 py-2 rounded-lg text-sm border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-900 dark:text-white placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-forest/50"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-stone-600 dark:text-stone-400 block mb-1">
+                        Event filter{" "}
+                        <span className="text-stone-400">(comma-separated, empty = all)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={webhookEvents}
+                        onChange={(e) => setWebhookEvents(e.target.value)}
+                        placeholder="health.check, health.public_check"
+                        className="w-full px-3 py-2 rounded-lg text-sm border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-900 dark:text-white placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-forest/50"
+                      />
+                    </div>
+                    <button
+                      onClick={handleCreateWebhook}
+                      disabled={webhookLoading || !webhookUrl.trim()}
+                      className="px-4 py-2 rounded-lg text-sm font-medium bg-forest text-white hover:bg-forest/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {webhookLoading ? "Registering…" : "Register Webhook"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </section>
+
             {/* Footer */}
             <footer className="text-center pt-8 pb-4 border-t border-stone-200 dark:border-stone-700">
               <p className="text-xs text-stone-400">
@@ -944,7 +1204,7 @@ export default function StatusPage() {
                 — Building the Future of African Tech
               </p>
               <p className="text-[10px] text-stone-300 dark:text-stone-600 mt-1">
-                Status page refreshes every 30 seconds automatically
+                Real-time updates via Server-Sent Events · Webhook subscriptions available
               </p>
             </footer>
           </>

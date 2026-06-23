@@ -96,6 +96,12 @@ SERVICES = [
         "port": 7474,
         "timeout": 3.0,
     },
+    {
+        "name": "SolidAI Gateway",
+        "type": "http",
+        "url": os.getenv("SOLIDAI_GATEWAY_URL", "http://172.18.0.1:18789/status"),
+        "timeout": 10.0,
+    },
 ]
 
 # Public endpoints to check (external-facing)

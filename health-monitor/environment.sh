@@ -1,0 +1,1 @@
+#!/bin/bash\n# Set OpenRouter API key for LiteLLM\nexport LITELLM_API_KEY=$OPENROUTER_API_KEY\n# Load environment variables\nsource /home/yassin/solidai-sre/health-monitor/environment.sh

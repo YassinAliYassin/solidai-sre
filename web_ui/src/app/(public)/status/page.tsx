@@ -645,6 +645,60 @@ function SlaSummarySection({ sla }: { sla: SlaSummaryData | null }) {
   );
 }
 
+// ── Gateway Status ──────────────────────────────────────────────────────────
+
+function GatewayStatus({ services }: { services: ServiceSummary[] }) {
+  const gateway = services.find((s) => s.name === "SolidAI Gateway");
+
+  if (!gateway) return null;
+
+  const config = STATUS_CONFIG[gateway.status] || STATUS_CONFIG.unknown;
+  const Icon = config.icon;
+
+  return (
+    <section>
+      <h2 className="text-sm font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+        <Zap className="w-4 h-4" />
+        SolidAI Gateway
+      </h2>
+      <div className={`rounded-xl border ${config.border} ${config.bg} p-5`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Icon className={`w-6 h-6 ${config.color}`} />
+            <div>
+              <div className="font-semibold text-stone-900 dark:text-white">
+                Gateway Service
+              </div>
+              <div className={`text-sm ${config.color}`}>
+                {config.label}
+              </div>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-xs text-stone-500 dark:text-stone-400">Uptime 24h</div>
+            <div className={`text-lg font-bold ${uptimeColor(gateway.uptime_24h)}`}>
+              {formatUptime(gateway.uptime_24h)}
+            </div>
+          </div>
+        </div>
+        {gateway.latency && gateway.latency.avg_ms > 0 && (
+          <div className="mt-3 pt-3 border-t border-stone-200/50 dark:border-stone-700/50 flex items-center gap-4 text-xs text-stone-500 dark:text-stone-400">
+            <span>
+              Avg: <strong className="text-stone-700 dark:text-stone-300">{formatLatency(gateway.latency.avg_ms)}</strong>
+            </span>
+            <span>
+              p95: <strong className="text-stone-700 dark:text-stone-300">{formatLatency(gateway.latency.p95_ms)}</strong>
+            </span>
+            <span>
+              p99: <strong className="text-stone-700 dark:text-stone-300">{formatLatency(gateway.latency.p99_ms)}</strong>
+            </span>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // ── Overall Status Banner ───────────────────────────────────────────────────
 
 function OverallBanner({ summary }: { summary: HealthSummary | null }) {
@@ -982,6 +1036,9 @@ export default function StatusPage() {
                 <div className="text-xs text-stone-500">Down</div>
               </div>
             </div>
+
+            {/* Gateway Status */}
+            <GatewayStatus services={data?.summary?.services || []} />
 
             {/* SLA Summary */}
             <SlaSummarySection sla={data?.sla || null} />
